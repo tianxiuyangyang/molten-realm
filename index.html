@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#160b0a"><title>赤境之门 · 熔火世界</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ff6f26' d='M16 1 28 24 16 31 4 24Z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./src/style.css?v=4">
+<script type="importmap">{"imports":{"three":"./libs/three.module.js","three/addons/":"./libs/addons/"}}</script>
+</head>
+<body>
+<main id="app">
+  <div id="viewport" aria-label="可自由浏览的熔岩城堡3D场景"></div>
+  <div id="reference"><img src="./reference.jpg" alt="原始场景参考图"><span>原图对照 · 非实时渲染</span></div>
+  <div class="vignette"></div>
+  <header class="identity"><span class="crest" id="scene-symbol">◈</span><div><div class="kicker" id="scene-english">THE CRIMSON THRESHOLD</div><h1><b id="scene-title">赤境之门</b><span id="scene-number">02</span></h1></div></header>
+  <nav class="region-switch" aria-label="场景区域"><button data-region="citadel" aria-pressed="false"><small>01</small> 熔火王座</button><button data-region="portal" aria-pressed="true"><small>02</small> 赤境之门<span class="new-dot"></span></button></nav>
+  <section id="loading"><div class="load-inner"><div class="load-icon">♜</div><div class="kicker">BUILDING THE REALM</div><h2 id="load-title">正在构建熔火世界</h2><p id="load-detail">加载本地渲染引擎与材质…</p><div class="progress"><i id="progress"></i></div></div></section>
+  <aside class="console" id="console">
+    <div class="console-top"><span class="live-dot"></span><span id="status">正在构建场景</span><button id="collapse" aria-label="收起控制台" title="收起控制台">−</button></div>
+    <div class="console-body">
+      <div class="intro" id="scene-intro">循着熔岩流光，抵达赤色菌林深处的秘门。</div>
+      <div class="actions"><button id="reset" title="回到与原图匹配的观察视角">参考视角</button></div>
+      <div class="toolbar"><button id="compare" aria-pressed="false">◩ 原图对照</button><button id="shot">↓ 截图</button><button id="fullscreen">⤢ 全屏</button></div>
+      <div id="compare-options" hidden><label>叠加透明度<input id="opacity" type="range" min="0" max="1" step=".01" value=".5"></label><label class="upload">替换对照图<input id="upload" type="file" accept="image/*"></label><small>仅替换对照图，不会自动生成新场景。</small></div>
+      <div class="settings"><label for="quality">渲染质量</label><select id="quality"><option value="high" selected>精细 · 阴影 + 辉光</option><option value="ultra">超清 · 高分辨率</option><option value="balanced">流畅 · 轻量渲染</option></select></div>
+      <div class="stats"><span id="stats">构建中</span><span id="fps">— FPS</span></div>
+    </div>
+  </aside>
+  <div class="corner-caption"><span id="caption-label">02 / THE CRIMSON THRESHOLD</span><b id="caption-text">余烬落下，另一重世界正在苏醒。</b></div>
+  <div class="nav-hint" id="hint">拖动环绕 <em>·</em> 滚轮靠近 <em>·</em> 右键平移</div>
+  <div id="toast" role="status"></div>
+</main>
+<script>
+window.reportSceneError=function(err){document.getElementById('loading').classList.remove('done');document.getElementById('load-title').textContent='场景加载未完成';document.getElementById('load-detail').textContent=String(err)+'。请刷新页面；如仍失败，请确认浏览器已开启图形加速。';document.getElementById('status').textContent='加载失败';};
+window.addEventListener('error',e=>window.reportSceneError(e.message||'本地资源读取失败'));
+window.addEventListener('unhandledrejection',e=>window.reportSceneError(e.reason?.message||e.reason));
+</script>
+<script type="module" src="./src/main.js?v=5"></script>
+</body></html>
+

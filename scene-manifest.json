@@ -1,0 +1,415 @@
+{
+  "name": "熔火王座 / Obsidian Citadel",
+  "version": 3,
+  "worldName": "熔火王座 · 赤境之门",
+  "defaultRegion": "portal",
+  "legacyFieldsRegion": "citadel",
+  "seed": 71821,
+  "reference": {
+    "file": "reference.jpg",
+    "width": 2278,
+    "height": 1280
+  },
+  "analysis": {
+    "style": "Highly detailed voxel / stepped dark-fantasy architecture, physically shaded basalt, incandescent lava; not smooth modern architecture",
+    "composition": "Castle dominates center-right, diagonal bridge enters bottom-left, deep vertical chasm exposes tapered floating island. Giant fungi frame foreground edges. Red smoky horizon at upper third.",
+    "anchorsNormalized": {
+      "spire": [
+        0.623,
+        0.047
+      ],
+      "gate": [
+        0.561,
+        0.494
+      ],
+      "islandTip": [
+        0.59,
+        0.866
+      ],
+      "bridgeStart": [
+        0.0,
+        0.83
+      ],
+      "horizon": [
+        0.5,
+        0.303
+      ]
+    },
+    "boundsNormalized": {
+      "castle": [
+        0.468,
+        0.037,
+        0.757,
+        0.544
+      ],
+      "island": [
+        0.426,
+        0.466,
+        0.785,
+        0.877
+      ]
+    },
+    "occlusion": [
+      "embers",
+      "foreground fungi and cliffs",
+      "bridge",
+      "castle and central island",
+      "lava falls and distant cliffs",
+      "volcanic sky"
+    ],
+    "materials": [
+      "rough charcoal basalt with chipped beveled masonry",
+      "red fractured ore",
+      "black lava crust with yellow-orange incandescent seams",
+      "crimson voxel fungi"
+    ],
+    "lighting": "Warm lava underlight, orange horizon backlight, neutral-warm soft key preserving visible brick relief, smoke depth attenuation",
+    "camera": "Perspective; modest vertical convergence; elevated three-quarter view",
+    "uncertainty": "Hidden rear architecture, island underside, off-frame geography and dimensions are hand-authored plausible completions, not recovered measurements."
+  },
+  "camera": {
+    "position": [
+      49,
+      76,
+      151
+    ],
+    "target": [
+      -8,
+      23,
+      0
+    ],
+    "fov": 45
+  },
+  "quality": {
+    "default": "high",
+    "pixelRatioCap": 1.65,
+    "shadowMap": 2048,
+    "bloom": true
+  },
+  "world": {
+    "coordinates": "右手坐标，Y 向上；区域原点为世界坐标，区域相机和几何使用局部坐标。尺寸为视觉拟合单位，不代表实测米数。",
+    "layout": "原要塞和新增传送门区域保留在同一个 Three.js 场景；新增区域沿世界 X 正方向偏移 420 个单位。区域选择切换观察位置、环境参数和参考图。",
+    "navigation": "reference-orbit",
+    "firstPerson": false
+  },
+  "regions": {
+    "citadel": {
+      "name": "熔火王座 / Obsidian Citadel",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "file": "reference.jpg",
+        "width": 2278,
+        "height": 1280
+      },
+      "camera": {
+        "position": [
+          49,
+          76,
+          151
+        ],
+        "target": [
+          -8,
+          23,
+          0
+        ],
+        "fov": 45
+      },
+      "analysisSource": "顶层 analysis 保留原要塞的构图、锚点、材质和不确定性分析。",
+      "refinement": {
+        "materials": "世界尺度三向玄武岩颗粒、断层、裂纹、粗糙度与细边磨损",
+        "architecture": "层叠尖拱、贯通火窗、檐下齿饰、磨损桥面与金属火篮",
+        "atmosphere": "动态体素火焰、流动冷却熔岩、瀑布落点火星、低层烟雾",
+        "lighting": "中性天空光与熔岩暖色反照，缩小阴影范围提高接触阴影精度",
+        "scope": "仅熔火王座；赤境之门参数和实现保持原状"
+      }
+    },
+    "portal": {
+      "name": "赤境之门 / Crimson Gate",
+      "origin": [
+        420,
+        0,
+        0
+      ],
+      "seed": 3331920,
+      "reference": {
+        "file": "reference-portal.jpg",
+        "sourceFilename": "333.jpg",
+        "width": 1920,
+        "height": 1079,
+        "aspectRatio": 1.77943,
+        "format": "JPEG",
+        "pixelFormat": "24-bit RGB",
+        "alpha": false,
+        "colorSpace": "输入没有通过色度校准；网页参考图按 sRGB 显示。",
+        "framing": "完整原始画幅；两侧前景蘑菇和最下方地面被画面自然截断。右下角原图文字不属于场景几何。"
+      },
+      "camera": {
+        "position": [
+          0,
+          14.45,
+          58
+        ],
+        "target": [
+          0,
+          11.7,
+          0
+        ],
+        "fov": 49,
+        "projection": "perspective",
+        "status": "初始构图拟合；以实时渲染代码中经截图校准的参考视角为准。",
+        "note": "浏览器参考图叠加校准；窄屏自动扩展垂直视场以保留门体轮廓。"
+      },
+      "geometry": {
+        "portalBoundsLocal": {
+          "min": [
+            -17,
+            0,
+            -2
+          ],
+          "max": [
+            17,
+            30,
+            2
+          ]
+        },
+        "portalAxis": "门框正面朝局部 +Z，门心位于 x=0、z=0 附近。",
+        "foreground": "台阶和中轴石路沿 +Z 朝相机延伸，熔岩溪分布于石路两侧；巨型菌木、灯笼、草簇和紫色矿石形成前中景。",
+        "background": "门后为分层玄武岩峡谷、远景尖塔轮廓、红色雾层和烟云天空。",
+        "silhouette": "对称阶梯状黑石门框、两翼低矮支墩、窄长的多层紫色内缘；顶部紫色徽记、上部双侧橙色圆形纹章。"
+      },
+      "analysis": {
+        "sceneType": "室外幻想峡谷，体素化地貌与建筑，强调真实的表面粗糙度、体积厚度、接触阴影和发光反射。",
+        "composition": "门框位于画面中轴，占高度约 56%；门前深色石路由底边向中央台阶收束。两侧熔岩从前景包围石路；左右巨型红色蘑菇和菌木构成边缘框景。峡谷壁和雾中远山形成纵深。",
+        "symmetryAxisNormalized": 0.5,
+        "boundsFormat": "[left, top, right, bottom]，均以完整参考图宽高归一化，数值为人工视觉估计。",
+        "boundsNormalized": {
+          "portalArchitecture": [
+            0.267,
+            0.135,
+            0.731,
+            0.691
+          ],
+          "portalAperture": [
+            0.419,
+            0.303,
+            0.58,
+            0.65
+          ],
+          "centralCrest": [
+            0.473,
+            0.149,
+            0.524,
+            0.249
+          ],
+          "leftOrangeSeal": [
+            0.37,
+            0.258,
+            0.399,
+            0.316
+          ],
+          "rightOrangeSeal": [
+            0.599,
+            0.258,
+            0.628,
+            0.316
+          ],
+          "centralStairs": [
+            0.422,
+            0.672,
+            0.578,
+            0.782
+          ],
+          "foregroundStonePath": [
+            0.304,
+            0.754,
+            0.65,
+            1.0
+          ],
+          "leftForegroundMushroom": [
+            0.0,
+            0.475,
+            0.153,
+            0.846
+          ],
+          "rightLargeFungusTree": [
+            0.793,
+            0.394,
+            1.0,
+            0.757
+          ],
+          "rightForegroundMushroom": [
+            0.824,
+            0.797,
+            1.0,
+            1.0
+          ],
+          "leftCliff": [
+            0.0,
+            0.121,
+            0.284,
+            0.519
+          ],
+          "rightCliff": [
+            0.672,
+            0.155,
+            1.0,
+            0.592
+          ]
+        },
+        "anchorsNormalized": {
+          "portalTop": [
+            0.5,
+            0.135
+          ],
+          "portalCrest": [
+            0.499,
+            0.203
+          ],
+          "portalCenter": [
+            0.5,
+            0.466
+          ],
+          "portalFoot": [
+            0.5,
+            0.638
+          ],
+          "cyanEnergyFocus": [
+            0.501,
+            0.433
+          ],
+          "orangeEnergyFocus": [
+            0.5,
+            0.574
+          ],
+          "centralStairFoot": [
+            0.5,
+            0.779
+          ],
+          "pathVanishingDirection": [
+            0.5,
+            0.645
+          ],
+          "leftLavaForeground": [
+            0.236,
+            0.936
+          ],
+          "rightLavaForeground": [
+            0.71,
+            0.927
+          ],
+          "rightLavaBend": [
+            0.787,
+            0.692
+          ],
+          "leftPortalLantern": [
+            0.378,
+            0.619
+          ],
+          "rightPortalLantern": [
+            0.62,
+            0.619
+          ],
+          "leftFloatingEmberRock": [
+            0.293,
+            0.143
+          ],
+          "rightFloatingEmberRock": [
+            0.703,
+            0.112
+          ],
+          "brightHorizonBand": [
+            0.5,
+            0.337
+          ]
+        },
+        "perspective": "近乎正对的中轴透视，门框竖线保持接近竖直；石路、砖台和熔岩河岸向门脚收束。相机略高于前景地面，可看到台阶踏面、岩台顶面和菌盖顶部。",
+        "occlusionFrontToBack": [
+          "空气火星与漂浮颗粒",
+          "画面两侧被裁切的巨型蘑菇、灯笼与近景岩块",
+          "暗色石路、草簇及石路两侧熔岩",
+          "台阶、台座及正面门框",
+          "门框内的分层能量与火光",
+          "中景菌林及峡谷台地",
+          "深色峡谷壁、雾中尖塔轮廓和红色烟云天空"
+        ],
+        "visibleSurfaces": "正面砌体和雕饰最清楚，门框两侧及阶梯具有可见厚度；前景台地、砖路、菌盖显示顶面。门后建筑关系不可直接判定。",
+        "materials": [
+          {
+            "name": "门框玄武岩",
+            "appearance": "深紫黑粗糙石材，错缝砌块、局部倒角和矿物斑点；发光边缘照亮粗糙度变化。",
+            "roughnessRange": [
+              0.72,
+              0.95
+            ],
+            "metalnessRange": [
+              0.02,
+              0.15
+            ]
+          },
+          {
+            "name": "红色砌砖与岩土",
+            "appearance": "暗红砖缝、热色表面起伏和熔岩附近的橙色反光。",
+            "roughnessRange": [
+              0.8,
+              1.0
+            ],
+            "metalnessRange": [
+              0.0,
+              0.06
+            ]
+          },
+          {
+            "name": "熔岩",
+            "appearance": "黄白热芯、橙色流动纹理、深红结壳；亮度变化保留分支河道和边岸轮廓。",
+            "roughnessRange": [
+              0.3,
+              0.65
+            ],
+            "metalnessRange": [
+              0.0,
+              0.05
+            ]
+          },
+          {
+            "name": "菌盖与菌柄",
+            "appearance": "深红体素菌盖和不规则暖白斑点，浅褐色菌柄带深色斑块；受熔岩底光影响。",
+            "roughnessRange": [
+              0.75,
+              0.98
+            ],
+            "metalnessRange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "name": "门内能量",
+            "appearance": "紫色边界和半透明空间层次，分叉青蓝电弧、局部橙金热流；下部最亮，开口仍可读。"
+          },
+          {
+            "name": "紫色矿石与灯具",
+            "appearance": "切块状紫色矿石，暖黄灯笼与零星紫色发光灯作为局部次级光源。"
+          }
+        ],
+        "textureScale": "建筑以可辨识砖块和更细矿物颗粒形成两级尺度；植被保留方块轮廓与局部色差，石路裂缝小于铺装主块。",
+        "palette": {
+          "skyDark": "#270912",
+          "horizon": "#a7171e",
+          "basalt": "#211827",
+          "crimsonFoliage": "#9b0923",
+          "lavaOrange": "#ff6307",
+          "lavaCore": "#ffe044",
+          "portalViolet": "#ab3dff",
+          "portalCyan": "#57dfff"
+        },
+        "lighting": "熔岩提供橙黄底光；门内能量向框体和台座投射紫色、蓝色和金色光；红色天际线产生弱背光与雾散射。局部暖黄灯笼补充近景明暗节奏。主体黑石保持砖缝、阴影和受光面的分离。",
+        "shadow": "台阶、门框凹槽、菌盖底部与岩块接地处形成明显遮蔽，环境光柔和；发光源周边辉光受控，避免吞没门框轮廓和中央石路。",
+        "uncertainty": "单张图片无法确定门后形状、峡谷真实跨度、几何厚度、材质物理参数和绝对尺度；隐藏区域及动态能量过程采用结构合理的可编辑补全。坐标、包围盒和材质范围用于视觉拟合，不属于实测数据。"
+      }
+    }
+  }
+}
