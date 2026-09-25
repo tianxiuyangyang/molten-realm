@@ -29,9 +29,10 @@
   <div id="toast" role="status"></div>
 </main>
 <script>
-window.reportSceneError=function(err){document.getElementById('loading').classList.remove('done');document.getElementById('load-title').textContent='场景加载未完成';document.getElementById('load-detail').textContent=String(err)+'。请刷新页面；如仍失败，请确认浏览器已开启图形加速。';document.getElementById('status').textContent='加载失败';};
+window.reportSceneError=function(err){document.getElementById('loading').classList.remove('done');document.getElementById('load-title').textContent='场景加载未完成';document.getElementById('load-detail').textContent=String(err||'资源加载失败')+'。';document.getElementById('status').textContent='加载失败';};
 window.addEventListener('error',e=>window.reportSceneError(e.message||'本地资源读取失败'));
 window.addEventListener('unhandledrejection',e=>window.reportSceneError(e.reason?.message||e.reason));
+window.setTimeout(()=>{if(location.protocol==='file:'&&!window.__sceneBooted)window.reportSceneError('请通过本地服务器打开：双击项目里的 start-preview.bat，或访问 http://localhost:4173');},1400);
 </script>
 <script type="module" src="./src/main.js?v=5"></script>
 </body></html>

@@ -13,6 +13,8 @@ cd molten-realm
 python -m http.server 4173
 ```
 
+也可以直接双击项目根目录的 `start-preview.bat`，它会启动本地服务并打开预览。不要直接双击 `index.html`，因为 Chrome 会阻止 `file:///` 页面加载 Three.js ES modules。
+
 打开 [赤境之门](http://localhost:4173/?region=portal)（默认区域）、[熔火王座](http://localhost:4173/?region=citadel) 或 [星渊回廊](http://localhost:4173/?region=scifi)。通过页面区域选择切换观察位置。
 
 - 鼠标或触摸旋转、缩放观察；「参考视角」恢复当前区域的构图。

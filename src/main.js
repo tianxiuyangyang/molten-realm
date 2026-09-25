@@ -9,6 +9,8 @@ import {buildPortalWorld} from './portal-world.js';
 import {buildSciFiWorld} from './scifi-world.js';
 import {createSciFiEffects} from './scifi-effects.js';
 
+window.__sceneBooted=true;
+
 const $=selector=>document.querySelector(selector);
 const regions={
   citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
