@@ -10,7 +10,6 @@
 <body>
 <main id="app">
   <div id="viewport" aria-label="可自由浏览的熔岩城堡3D场景"></div>
-  <div id="reference"><img src="./reference.jpg" alt="原始场景参考图"><span>原图对照 · 非实时渲染</span></div>
   <div class="vignette"></div>
   <header class="identity"><span class="crest" id="scene-symbol">◈</span><div><div class="kicker" id="scene-english">THE CRIMSON THRESHOLD</div><h1><b id="scene-title">赤境之门</b><span id="scene-number">02</span></h1></div></header>
   <nav class="region-switch" aria-label="场景区域"><button data-region="citadel" aria-pressed="false"><small>01</small> 熔火王座</button><button data-region="portal" aria-pressed="true"><small>02</small> 赤境之门<span class="new-dot"></span></button></nav>
@@ -19,9 +18,8 @@
     <div class="console-top"><span class="live-dot"></span><span id="status">正在构建场景</span><button id="collapse" aria-label="收起控制台" title="收起控制台">−</button></div>
     <div class="console-body">
       <div class="intro" id="scene-intro">循着熔岩流光，抵达赤色菌林深处的秘门。</div>
-      <div class="actions"><button id="reset" title="回到与原图匹配的观察视角">参考视角</button></div>
-      <div class="toolbar"><button id="compare" aria-pressed="false">◩ 原图对照</button><button id="shot">↓ 截图</button><button id="fullscreen">⤢ 全屏</button></div>
-      <div id="compare-options" hidden><label>叠加透明度<input id="opacity" type="range" min="0" max="1" step=".01" value=".5"></label><label class="upload">替换对照图<input id="upload" type="file" accept="image/*"></label><small>仅替换对照图，不会自动生成新场景。</small></div>
+      <div class="actions"><button id="reset" title="回到默认观察视角">参考视角</button></div>
+      <div class="toolbar"><button id="shot">↓ 截图</button><button id="fullscreen">⤢ 全屏</button></div>
       <div class="settings"><label for="quality">渲染质量</label><select id="quality"><option value="high" selected>精细 · 阴影 + 辉光</option><option value="ultra">超清 · 高分辨率</option><option value="balanced">流畅 · 轻量渲染</option></select></div>
       <div class="stats"><span id="stats">构建中</span><span id="fps">— FPS</span></div>
     </div>

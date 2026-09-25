@@ -9,8 +9,8 @@ import {buildPortalWorld} from './portal-world.js';
 
 const $=selector=>document.querySelector(selector);
 const regions={
-  citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,reference:'./reference.jpg',min:28,max:270},
-  portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,reference:'./reference-portal.jpg',min:17,max:145},
+  citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
+  portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145},
 };
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,1100);
@@ -24,7 +24,7 @@ Object.assign(controls,{enableDamping:true,dampingFactor:.055,enablePan:true,pan
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.38,.42,1.05);
 composer.addPass(bloom);composer.addPass(new OutputPass());
-const built=new Map(),uploadedReferences=new Map();
+const built=new Map();
 let activeId,active,quality='high',switching=false,animationId=0,disposed=false,paused=false;
 let last=performance.now(),frames=0,fpsTime=last,elapsed=0,toastTimer;
 const setProgress=(detail,percent)=>{$('#load-detail').textContent=detail;$('#progress').style.width=percent+'%';};
@@ -67,7 +67,6 @@ async function switchRegion(id,updateUrl=true){
     }
     for(const [key,region] of built)region.root.visible=key===id;
     activeId=id;active=built.get(id);scene.fog=new THREE.FogExp2(spec.fog,spec.density);renderer.toneMappingExposure=spec.exposure;resetCamera();
-    $('#reference img').src=uploadedReferences.get(id)||spec.reference;$('#reference img').alt=spec.name+'原始参考图';
     $('#scene-title').textContent=spec.name;$('#scene-number').textContent=spec.number;$('#scene-english').textContent=spec.english;$('#scene-symbol').textContent=spec.symbol;$('#scene-intro').textContent=spec.intro;
     $('#caption-label').textContent=spec.number+' / '+spec.label;$('#caption-text').textContent=spec.caption;
     document.title=spec.name+' · 熔火世界';$('#viewport').setAttribute('aria-label',spec.name+'三维参考观察场景');document.body.dataset.region=id;
@@ -90,17 +89,6 @@ function loop(now){
 }
 for(const button of document.querySelectorAll('[data-region]'))button.onclick=()=>switchRegion(button.dataset.region);
 $('#reset').onclick=resetCamera;
-$('#compare').onclick=()=>{const on=$('#reference').classList.toggle('on');$('#compare-options').hidden=!on;$('#compare').setAttribute('aria-pressed',String(on));};
-$('#opacity').oninput=event=>$('#reference').style.opacity=event.target.value;
-$('#upload').onchange=async event=>{
-  const file=event.target.files?.[0];if(!file)return;const regionId=activeId;
-  if(!file.type.startsWith('image/')||file.size>30*1024*1024){toast('请选择小于 30 MB 的图片文件');event.target.value='';return;}
-  const url=URL.createObjectURL(file);
-  try{const image=new Image();image.src=url;await image.decode();if(image.naturalWidth*image.naturalHeight>40e6)throw new Error('图片尺寸过大，请使用低于 4000 万像素的图片');
-    const old=uploadedReferences.get(regionId);if(old)URL.revokeObjectURL(old);uploadedReferences.set(regionId,url);
-    if(activeId===regionId){$('#reference img').src=url;$('#reference').classList.add('on');$('#compare-options').hidden=false;$('#compare').setAttribute('aria-pressed','true');}
-  }catch(error){URL.revokeObjectURL(url);toast(error.message.includes('像素')?error.message:'无法读取图片，请选择有效的 JPG、PNG 或 WebP');}event.target.value='';
-};
 $('#collapse').onclick=()=>{const collapsed=$('#console').classList.toggle('collapsed');$('#collapse').textContent=collapsed?'+':'−';$('#collapse').setAttribute('aria-label',collapsed?'展开控制台':'收起控制台');};
 $('#fullscreen').onclick=async()=>{if(!document.fullscreenEnabled){toast('当前窗口不支持全屏，可在浏览器中打开预览');return;}try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{toast('当前窗口不支持全屏，可在浏览器中打开预览');}};
 $('#shot').onclick=()=>{
@@ -118,6 +106,6 @@ function disposeTree(root){
   for(const material of materials){for(const value of Object.values(material))if(value?.isTexture)textures.add(value);for(const uniform of Object.values(material.uniforms||{}))if(uniform.value?.isTexture)textures.add(uniform.value);material.dispose();}
   for(const geometry of geometries)geometry.dispose();for(const texture of textures)texture.dispose();
 }
-addEventListener('pagehide',event=>{if(event.persisted)return;disposed=true;cancelAnimationFrame(animationId);clearTimeout(toastTimer);controls.dispose();disposeTree(scene);for(const pass of composer.passes)pass.dispose?.();composer.dispose();renderer.dispose();for(const url of uploadedReferences.values())URL.revokeObjectURL(url);});
+addEventListener('pagehide',event=>{if(event.persisted)return;disposed=true;cancelAnimationFrame(animationId);clearTimeout(toastTimer);controls.dispose();disposeTree(scene);for(const pass of composer.passes)pass.dispose?.();composer.dispose();renderer.dispose();});
 if(innerWidth<700){$('#hint').innerHTML='单指环绕 <em>·</em> 双指缩放与平移';$('#console').classList.add('collapsed');$('#collapse').textContent='+';$('#collapse').setAttribute('aria-label','展开控制台');}
 const requested=new URLSearchParams(location.search).get('region');switchRegion(regions[requested]?requested:'portal');animationId=requestAnimationFrame(loop);
