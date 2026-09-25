@@ -6,11 +6,14 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildWorld} from './world.js?v=9';
 import {buildPortalWorld} from './portal-world.js';
+import {buildSciFiWorld} from './scifi-world.js';
+import {createSciFiEffects} from './scifi-effects.js';
 
 const $=selector=>document.querySelector(selector);
 const regions={
   citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
   portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145},
+  scifi:{name:'星渊回廊',english:'THE EVENT HORIZON',number:'03',symbol:'✦',intro:'穿过静默星尘，绿色潮汐在引力深渊边缘缓慢流动。',caption:'光在深处折返，时间沿着星流旋转。',label:'THE EVENT HORIZON',origin:[840,0,0],position:[0,10,58],target:[12,18,-38],fov:52,fog:0x071116,density:.0018,exposure:1.08,min:18,max:190},
 };
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,1100);
@@ -62,7 +65,7 @@ async function switchRegion(id,updateUrl=true){
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     if(!built.has(id)){
       const root=new THREE.Group();root.name='region-'+id;root.position.set(...spec.origin);root.visible=false;scene.add(root);
-      try{let world;if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}else world=buildPortalWorld(root,setProgress);built.set(id,{root,...world});}
+      try{let world;if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}else if(id==='portal')world=buildPortalWorld(root,setProgress);else {world=buildSciFiWorld(root,setProgress);const vortex=root.getObjectByName('gravitational-vortex');if(vortex)for(const child of vortex.children)if(child.name.startsWith('vortex-ribbon-')||child.name.startsWith('vortex-ring-'))child.visible=false;const effectsRoot=new THREE.Group();effectsRoot.name='scifi-nebula-layer';effectsRoot.position.set(42,16,-72);effectsRoot.scale.setScalar(2.5);root.add(effectsRoot);const effects=createSciFiEffects(effectsRoot,{starCount:1500,ribbonCount:8,radius:22,depth:29,seed:9444});for(const child of effectsRoot.children)if(child.name==='scifi-luminous-aperture'||child.name==='scifi-aperture-ring')child.visible=false;const update=world.update;world={...world,blockCount:world.blockCount+effects.count,update(t,dpr){update(t,dpr);effects.update(t,dpr);}};}built.set(id,{root,...world});}
       catch(error){scene.remove(root);disposeTree(root);throw error;}
     }
     for(const [key,region] of built)region.root.visible=key===id;
@@ -79,7 +82,7 @@ async function switchRegion(id,updateUrl=true){
 }
 function applyQuality(){
   renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='ultra'?2:quality==='balanced'?1.1:1.65));composer.setPixelRatio(renderer.getPixelRatio());
-  renderer.shadowMap.enabled=quality!=='balanced';bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):(quality==='ultra'?.34:.27);bloom.threshold=activeId==='portal'?1.1:1.2;bloom.radius=activeId==='portal'?.46:.38;
+  renderer.shadowMap.enabled=quality!=='balanced';bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):activeId==='scifi'?(quality==='ultra'?.44:.34):(quality==='ultra'?.34:.27);bloom.threshold=activeId==='portal'?1.1:activeId==='scifi'?.86:1.2;bloom.radius=activeId==='portal'?.46:activeId==='scifi'?.58:.38;
 }
 function resize(){camera.aspect=innerWidth/innerHeight;renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);if(activeId)resetCamera();else camera.updateProjectionMatrix();$('#hint').innerHTML=innerWidth<700?'单指环绕 <em>·</em> 双指缩放与平移':'拖动环绕 <em>·</em> 滚轮靠近 <em>·</em> 右键平移';}
 function loop(now){

@@ -1,10 +1,10 @@
-# 熔火王座 · 赤境之门
+# 熔火王座 · 赤境之门 · 星渊回廊
 
-一个使用 Three.js 实时渲染的双区域火山奇幻世界，无需构建工具或后端。
+一个使用 Three.js 实时渲染的三场景幻想世界，无需构建工具或后端。
 
-在线预览：[赤境之门](https://tianxiuyangyang.github.io/molten-realm/?region=portal) · [熔火王座](https://tianxiuyangyang.github.io/molten-realm/?region=citadel)。
+在线预览：[赤境之门](https://tianxiuyangyang.github.io/molten-realm/?region=portal) · [熔火王座](https://tianxiuyangyang.github.io/molten-realm/?region=citadel) · [星渊回廊](https://tianxiuyangyang.github.io/molten-realm/?region=scifi)。
 
-原有「熔火王座」要塞继续保留；新增「赤境之门」位于同一个 Three.js 世界中的独立区域，原点为 `[420, 0, 0]`。新区域依据 `333.jpg` 搭建阶梯状黑石传送门、紫青色能量、熔岩溪、中央石路、红色菌林和峡谷背景。两处区域均使用真实 3D 几何与实时渲染。
+原有「熔火王座」和「赤境之门」继续保留；新增「星渊回廊」位于同一个 Three.js 世界中的独立区域，原点为 `[840, 0, 0]`。新区域依据 `444.jpg` 搭建深空星幕、白色引力汇聚核心、青绿色流体星带、绿色潮汐地貌、远景信标与微型探索者。该区域使用非体素的平滑几何、程序化 shader、实时粒子和受控辉光，保持真实感科幻风格。
 
 入口为 `index.html`。在项目目录启动静态服务：
 
@@ -13,17 +13,19 @@ cd molten-realm
 python -m http.server 4173
 ```
 
-打开 [赤境之门](http://localhost:4173/?region=portal)（默认区域），或直接打开 [原有要塞](http://localhost:4173/?region=citadel)。通过页面区域选择切换观察位置。
+打开 [赤境之门](http://localhost:4173/?region=portal)（默认区域）、[熔火王座](http://localhost:4173/?region=citadel) 或 [星渊回廊](http://localhost:4173/?region=scifi)。通过页面区域选择切换观察位置。
 
 - 鼠标或触摸旋转、缩放观察；「参考视角」恢复当前区域的构图。
 - 「截图」导出当前渲染画面；「全屏」扩展观察空间。
 - 「精细」「超清」「流畅」三档画质用于平衡分辨率、阴影、辉光与设备性能，默认精细。
 
-`scene-manifest.json` 保留原要塞分析，并记录两处区域坐标、新场景屏幕锚点、材质、灯光及构图假设。画布中的空间由场景几何与实时材质、灯光生成。
+`scene-manifest.json` 保留三处区域的分析，并记录坐标、相机、屏幕锚点、材质、灯光及构图假设。画布中的空间由场景几何与实时材质、灯光生成。
 
 场景始终保持参考观察模式，不添加「进入场景」按钮、Pointer Lock 或第一人称自由飞行。单图无法确定不可见背面、绝对尺寸和完整材质参数；这些部分采用可编辑的合理补全，重点匹配参考视角中的轮廓、透视、遮挡与光色。
 
 实现文件：`src/portal-world.js` 组织新区灯光、天空和粒子；`src/portal-gate.js` 构建门体、符文及动态能量；`src/portal-landscape.js` 构建菌林、石路和熔岩。`src/main.js` 管理区域切换、观察控制和画质。区域在首次访问时构建，已构建区域保留在同一场景中；远处非活动区域隐藏以节省绘制。
+
+「星渊回廊」由 `src/scifi-world.js` 和 `src/scifi-effects.js` 组织：前者负责星幕、引力漩涡、绿色流体地貌、信标与探索者，后者提供 GPU 星尘和带噪声的动态星云带。该区域使用独立的深空雾色、实时辉光和参考相机 `[0,10,58]` / `[12,18,-38]`。
 
 已验证：桌面 1280 × 720 与窄屏 390 × 844 预览、两区域切换、鼠标环绕和参考复位、精细/流畅画质切换、PNG 实际下载；模块语法与本地资源检查通过，未发现浏览器渲染警告或错误。新区域约 49,000 个实例构件。全屏取决于浏览器窗口是否允许原生 Fullscreen API。
 

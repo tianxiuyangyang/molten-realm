@@ -62,6 +62,14 @@ small { color: #8f7965; font-size: 9px; }
 body[data-region=portal] .console { background: linear-gradient(130deg, #20131ee8, #160c13e6); border-color: #a8789940; }
 body[data-region=portal] .crest { color: #c29cdb; border-color: #b088c44a; }
 body[data-region=portal] .live-dot { background: #bb83ed; box-shadow: 0 0 9px #c078ef; }
+body[data-region=scifi] { color: #d9f1ed; }
+body[data-region=scifi] .console { background: linear-gradient(130deg, #0c1b1ee8, #071013e8); border-color: #72bbb044; }
+body[data-region=scifi] .crest { color: #9de2d3; border-color: #74bfb055; }
+body[data-region=scifi] .live-dot { background: #7de3c7; box-shadow: 0 0 9px #5ee8c0; }
+body[data-region=scifi] .kicker, body[data-region=scifi] .corner-caption span { color: #9bcfc7; }
+body[data-region=scifi] h1 span { color: #a9ded4; border-color: #6ba99e55; }
+body[data-region=scifi] .nav-hint em { color: #6bc9b3; }
+.scifi-dot { background: #7de3c7; box-shadow: 0 0 8px #63e0c1; }
 button:focus-visible { outline: 2px solid #d7adef; }
 @media (max-width: 700px) {
   .identity { left: 18px; top: 18px; }
