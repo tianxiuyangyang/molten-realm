@@ -7,7 +7,6 @@ import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildWorld} from './world.js?v=9';
 import {buildPortalWorld} from './portal-world.js';
 import {buildSciFiWorld} from './scifi-world.js';
-import {createSciFiEffects} from './scifi-effects.js';
 
 window.__sceneBooted=true;
 
@@ -15,7 +14,7 @@ const $=selector=>document.querySelector(selector);
 const regions={
   citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
   portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145},
-  scifi:{name:'星渊回廊',english:'THE EVENT HORIZON',number:'03',symbol:'✦',intro:'穿过静默星尘，绿色潮汐在引力深渊边缘缓慢流动。',caption:'光在深处折返，时间沿着星流旋转。',label:'THE EVENT HORIZON',origin:[840,0,0],position:[0,10,58],target:[12,18,-38],fov:52,fog:0x071116,density:.0018,exposure:1.08,min:18,max:190},
+  scifi:{name:'星渊回廊',english:'THE EVENT HORIZON',number:'03',symbol:'✦',intro:'穿过静默星尘，绿色潮汐在引力深渊边缘缓慢流动。',caption:'光在深处折返，时间沿着星流旋转。',label:'THE EVENT HORIZON',origin:[840,0,0],position:[0,10,58],target:[12,17,-38],fov:52,fog:0x071116,density:.0018,exposure:1.08,min:18,max:190},
 };
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,1100);
@@ -39,8 +38,22 @@ function resetCamera(){
   const spec=regions[activeId],origin=new THREE.Vector3(...spec.origin);
   camera.position.copy(origin).add(new THREE.Vector3(...spec.position));controls.target.copy(origin).add(new THREE.Vector3(...spec.target));
   // Fit the full monument on portrait screens instead of cropping its sides.
-  camera.fov=camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.2/camera.aspect)):spec.fov;
+  camera.fov=activeId==='scifi'?spec.fov:camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.2/camera.aspect)):spec.fov;
+  if(activeId==='scifi'){
+    const localCamera=new THREE.Vector3(...spec.position),core=new THREE.Vector3(42,16,-72),targetZ=-38;
+    const verticalHalf=THREE.MathUtils.degToRad(camera.fov/2),horizontalHalf=Math.atan(Math.tan(verticalHalf)*camera.aspect);
+    const coreYaw=Math.atan2(core.x-localCamera.x,localCamera.z-core.z);
+    const wantedYawOffset=Math.atan((2*.86-1)*Math.tan(horizontalHalf));
+    const targetYaw=coreYaw-wantedYawOffset,depth=localCamera.z-targetZ;
+    const targetX=localCamera.x+Math.tan(targetYaw)*depth;
+    const corePitch=Math.atan2(core.y-localCamera.y,Math.hypot(core.x-localCamera.x,core.z-localCamera.z));
+    const wantedPitchOffset=Math.atan((1-2*.52)*Math.tan(verticalHalf));
+    const targetPitch=corePitch-wantedPitchOffset;
+    const targetY=localCamera.y+Math.tan(targetPitch)*Math.hypot(targetX-localCamera.x,depth);
+    controls.target.set(origin.x+targetX,origin.y+targetY,origin.z+targetZ);
+  }
   camera.updateProjectionMatrix();controls.minDistance=spec.min;controls.maxDistance=spec.max;controls.update();controls.saveState();controls.enableDamping=true;
+  active?.setView?.(camera,origin);
 }
 function citadelLights(root){
   // Cool skylight reveals basalt grain; the broad lava fill warms undersides.
@@ -67,7 +80,7 @@ async function switchRegion(id,updateUrl=true){
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     if(!built.has(id)){
       const root=new THREE.Group();root.name='region-'+id;root.position.set(...spec.origin);root.visible=false;scene.add(root);
-      try{let world;if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}else if(id==='portal')world=buildPortalWorld(root,setProgress);else {world=buildSciFiWorld(root,setProgress);const vortex=root.getObjectByName('gravitational-vortex');if(vortex)for(const child of vortex.children)if(child.name.startsWith('vortex-ribbon-')||child.name.startsWith('vortex-ring-'))child.visible=false;const effectsRoot=new THREE.Group();effectsRoot.name='scifi-nebula-layer';effectsRoot.position.set(42,16,-72);effectsRoot.scale.setScalar(2.5);root.add(effectsRoot);const effects=createSciFiEffects(effectsRoot,{starCount:1500,ribbonCount:8,radius:22,depth:29,seed:9444});for(const child of effectsRoot.children)if(child.name==='scifi-luminous-aperture'||child.name==='scifi-aperture-ring')child.visible=false;const update=world.update;world={...world,blockCount:world.blockCount+effects.count,update(t,dpr){update(t,dpr);effects.update(t,dpr);}};}built.set(id,{root,...world});}
+      try{let world;if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}else if(id==='portal')world=buildPortalWorld(root,setProgress);else world=await buildSciFiWorld(root,setProgress);built.set(id,{root,...world});}
       catch(error){scene.remove(root);disposeTree(root);throw error;}
     }
     for(const [key,region] of built)region.root.visible=key===id;
