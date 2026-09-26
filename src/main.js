@@ -14,7 +14,7 @@ const $=selector=>document.querySelector(selector);
 const regions={
   citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
   portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145},
-  scifi:{name:'星渊回廊',english:'THE EVENT HORIZON',number:'03',symbol:'✦',intro:'穿过静默星尘，绿色潮汐在引力深渊边缘缓慢流动。',caption:'光在深处折返，时间沿着星流旋转。',label:'THE EVENT HORIZON',origin:[840,0,0],position:[0,10,58],target:[12,17,-38],fov:52,fog:0x071116,density:.0018,exposure:1.08,min:18,max:190},
+  scifi:{name:'幽蓝遗迹',english:'THE SUNKEN SANCTUM',number:'03',symbol:'✧',intro:'沉入地下水域的古老神殿，蓝紫晶簇照亮失落的传送门。',caption:'潮声掩过石碑，遗迹深处仍有光在呼吸。',label:'THE SUNKEN SANCTUM',origin:[840,0,0],position:[0,15,58],target:[0,8,-18],fov:47,fog:0x071622,density:.0045,exposure:1.22,min:22,max:170},
 };
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,1100);
@@ -38,20 +38,7 @@ function resetCamera(){
   const spec=regions[activeId],origin=new THREE.Vector3(...spec.origin);
   camera.position.copy(origin).add(new THREE.Vector3(...spec.position));controls.target.copy(origin).add(new THREE.Vector3(...spec.target));
   // Fit the full monument on portrait screens instead of cropping its sides.
-  camera.fov=activeId==='scifi'?spec.fov:camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.2/camera.aspect)):spec.fov;
-  if(activeId==='scifi'){
-    const localCamera=new THREE.Vector3(...spec.position),core=new THREE.Vector3(42,16,-72),targetZ=-38;
-    const verticalHalf=THREE.MathUtils.degToRad(camera.fov/2),horizontalHalf=Math.atan(Math.tan(verticalHalf)*camera.aspect);
-    const coreYaw=Math.atan2(core.x-localCamera.x,localCamera.z-core.z);
-    const wantedYawOffset=Math.atan((2*.86-1)*Math.tan(horizontalHalf));
-    const targetYaw=coreYaw-wantedYawOffset,depth=localCamera.z-targetZ;
-    const targetX=localCamera.x+Math.tan(targetYaw)*depth;
-    const corePitch=Math.atan2(core.y-localCamera.y,Math.hypot(core.x-localCamera.x,core.z-localCamera.z));
-    const wantedPitchOffset=Math.atan((1-2*.52)*Math.tan(verticalHalf));
-    const targetPitch=corePitch-wantedPitchOffset;
-    const targetY=localCamera.y+Math.tan(targetPitch)*Math.hypot(targetX-localCamera.x,depth);
-    controls.target.set(origin.x+targetX,origin.y+targetY,origin.z+targetZ);
-  }
+  camera.fov=activeId==='scifi'&&camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.15/camera.aspect)):activeId==='scifi'?spec.fov:camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.2/camera.aspect)):spec.fov;
   camera.updateProjectionMatrix();controls.minDistance=spec.min;controls.maxDistance=spec.max;controls.update();controls.saveState();controls.enableDamping=true;
   active?.setView?.(camera,origin);
 }
@@ -97,7 +84,7 @@ async function switchRegion(id,updateUrl=true){
 }
 function applyQuality(){
   renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='ultra'?2:quality==='balanced'?1.1:1.65));composer.setPixelRatio(renderer.getPixelRatio());
-  renderer.shadowMap.enabled=quality!=='balanced';bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):activeId==='scifi'?(quality==='ultra'?.44:.34):(quality==='ultra'?.34:.27);bloom.threshold=activeId==='portal'?1.1:activeId==='scifi'?.86:1.2;bloom.radius=activeId==='portal'?.46:activeId==='scifi'?.58:.38;
+  renderer.shadowMap.enabled=quality!=='balanced';bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):activeId==='scifi'?(quality==='ultra'?.33:.24):(quality==='ultra'?.34:.27);bloom.threshold=activeId==='portal'?1.1:activeId==='scifi'?1.08:1.2;bloom.radius=activeId==='portal'?.46:activeId==='scifi'?.43:.38;
 }
 function resize(){camera.aspect=innerWidth/innerHeight;renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);if(activeId)resetCamera();else camera.updateProjectionMatrix();$('#hint').innerHTML=innerWidth<700?'单指环绕 <em>·</em> 双指缩放与平移':'拖动环绕 <em>·</em> 滚轮靠近 <em>·</em> 右键平移';}
 function loop(now){

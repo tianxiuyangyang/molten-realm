@@ -1,7 +1,7 @@
 {
   "name": "熔火王座 / Obsidian Citadel",
   "version": 3,
-  "worldName": "熔火王座 · 赤境之门 · 星渊回廊",
+  "worldName": "熔火王座 · 赤境之门 · 幽蓝遗迹",
   "defaultRegion": "portal",
   "legacyFieldsRegion": "citadel",
   "seed": 71821,
@@ -412,41 +412,42 @@
       }
     },
     "scifi": {
-      "name": "星渊回廊 / Event Horizon",
+      "name": "幽蓝遗迹 / The Sunken Sanctum",
       "origin": [840, 0, 0],
-      "sourceFilename": "444.jpg",
+      "sourceFilename": "555.jpg",
       "reference": {
-        "width": 1080,
-        "height": 1724,
-        "aspectRatio": 0.62645,
+        "width": 1920,
+        "height": 1080,
+        "aspectRatio": 1.77778,
         "format": "JPEG",
         "pixelFormat": "24-bit RGB",
         "alpha": false
       },
       "camera": {
-        "position": [0, 10, 58],
-        "target": [12, 18, -38],
-        "fov": 52,
+        "position": [0, 15, 58],
+        "target": [0, 8, -18],
+        "fov": 47,
         "projection": "perspective",
-        "status": "以 444.jpg 的深空漏斗、右侧白色汇聚核心和绿色前景潮汐为参考构图。"
+        "status": "以 555.jpg 的地下水域、左右破损拱门、中央符文祭坛、远端青蓝传送门和洞顶晶簇为参考构图。"
       },
       "analysis": {
-        "sceneType": "真实感科幻深空景观，平滑流体地貌、程序化星云和引力漩涡；非体素、非像素方块风格。",
-        "composition": "深色星幕覆盖全画面；青白星流向右侧偏中的白色核心收束；绿色流体地貌占下部，形成前景尺度和引导线。",
+        "sceneType": "真实感地下水域遗迹，湿润蓝灰石拱、青蓝符文祭坛和蓝紫晶簇；实体几何参考观察场景。",
+        "composition": "洞窟顶与晶簇占上方；左右破损石拱框住中景；中央祭坛位于前景，斜向断桥引向远端阶梯与青蓝传送门。",
         "anchorsNormalized": {
-          "vortexCore": [0.82, 0.54],
-          "vortexMouth": [0.54, 0.22],
-          "greenHorizon": [0.5, 0.62],
-          "explorer": [0.53, 0.68]
+          "leftArch": [0.37, 0.42],
+          "rightArch": [0.72, 0.4],
+          "altar": [0.5, 0.71],
+          "distantGateway": [0.57, 0.44],
+          "waterline": [0.5, 0.65]
         },
         "materials": [
-          "低粗糙度青黑色星云流体，带半透明噪声和青白边缘辉光",
-          "深空星尘与白色高亮粒子",
-          "绿色半透明潮汐地貌，带程序化流动纹理",
-          "暗色金属信标与微型探索者，作为尺度参照"
+          "蓝灰湿石，带程序化颗粒、凹凸和断裂边缘",
+          "浅水面，带低对比波纹、菲涅耳边缘和青色反光",
+          "青蓝发光符文、远端能量门与紫蓝晶簇",
+          "分层祭坛、拱门、阶梯、断桥和守卫雕像"
         ],
-        "lighting": "深空环境光保持黑色层次；引力核心提供白色冷光，绿色地貌使用低强度青绿自发光，辉光受控以保留流体边缘。",
-        "uncertainty": "单张图片无法确定星流真实厚度、深度和核心背面结构；不可见部分采用平滑、可编辑的程序化补全。"
+        "lighting": "冷蓝方向光照亮湿石正面，中央祭坛提供青色局部光，顶部晶簇提供紫蓝边缘光；水面保持暗色反射层次。",
+        "uncertainty": "单张图片无法确定拱门背面、洞窟真实跨度和雕像细节；不可见部分采用结构合理的可编辑补全。"
       }
     }
   }
