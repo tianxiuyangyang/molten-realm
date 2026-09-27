@@ -1,5 +1,5 @@
 @echo off
 cd /d "%~dp0"
-start "Molten Realm Server" cmd /k "python -m http.server 4173"
+start "Molten Realm Server" cmd /k "python -m http.server 4173 --bind 127.0.0.1"
 timeout /t 1 /nobreak >nul
 start "" "http://localhost:4173/?region=portal"

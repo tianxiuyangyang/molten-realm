@@ -6,7 +6,7 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildWorld} from './world.js?v=9';
 import {buildPortalWorld} from './portal-world.js';
-import {buildSciFiWorld} from './scifi-world.js';
+import {buildSciFiWorld} from './scifi-world.js?v=22';
 
 window.__sceneBooted=true;
 
@@ -14,7 +14,7 @@ const $=selector=>document.querySelector(selector);
 const regions={
   citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
   portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145},
-  scifi:{name:'幽蓝遗迹',english:'THE SUNKEN SANCTUM',number:'03',symbol:'✧',intro:'沉入地下水域的古老神殿，蓝紫晶簇照亮失落的传送门。',caption:'潮声掩过石碑，遗迹深处仍有光在呼吸。',label:'THE SUNKEN SANCTUM',origin:[840,0,0],position:[0,15,58],target:[0,8,-18],fov:47,fog:0x071622,density:.0045,exposure:1.22,min:22,max:170},
+  scifi:{name:'幽蓝遗迹',english:'THE SUNKEN SANCTUM',number:'03',symbol:'✧',intro:'沉入地下水域的古老神殿，蓝紫晶簇照亮失落的传送门。',caption:'潮声掩过石碑，遗迹深处仍有光在呼吸。',label:'THE SUNKEN SANCTUM',origin:[840,0,0],position:[0,15,58],target:[0,8,-18],fov:47,fog:0x071622,density:.0045,exposure:1.12,min:22,max:170},
 };
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,1100);

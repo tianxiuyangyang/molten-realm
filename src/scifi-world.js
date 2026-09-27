@@ -1,158 +1,122 @@
 import * as THREE from 'three';
 import { randomSource } from './rendering.js';
 
-const palette = { deep: 0x26394c, stone: 0x66768b, edge: 0x9aa8bc, wet: 0x465a6e, moss: 0x4f705a };
-function material(color, options = {}) { return new THREE.MeshStandardMaterial({ color, roughness: .84, metalness: .08, ...options }); }
-function emissive(color, strength = 2.2) { return new THREE.MeshPhysicalMaterial({ color, emissive: color, emissiveIntensity: strength, roughness: .2, metalness: .08, clearcoat: .9, clearcoatRoughness: .16, transparent: true, opacity: .9, side: THREE.DoubleSide }); }
+// Lift the cold mid-tones so engraved stone remains readable in the cavern.
+const palette = { deep: 0x29475a, stone: 0x7d93a5, edge: 0xa9bbc7, wet: 0x345d70, moss: 0x4d7055, groove: 0x0a1d28 };
+function material(color, options = {}) { return new THREE.MeshStandardMaterial({ color, roughness: .86, metalness: .03, ...options }); }
+function emissive(color, strength = 1.2) { return new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: strength, roughness: .3, metalness: .02 }); }
+function meshFlags(mesh, cast = true) { mesh.castShadow = cast; mesh.receiveShadow = true; return mesh; }
 
 function addBox(root, mats, kind, x, y, z, sx, sy, sz, rotationY = 0, rotationZ = 0) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mats[kind]);
-  mesh.position.set(x, y, z); mesh.rotation.set(0, rotationY, rotationZ); mesh.castShadow = true; mesh.receiveShadow = true; root.add(mesh); return mesh;
+  const mesh = meshFlags(new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mats[kind])); mesh.position.set(x, y, z); mesh.rotation.set(0, rotationY, rotationZ); root.add(mesh); return mesh;
 }
-
+function addStone(root, mats, kind, x, y, z, width, height, depth, rotationY = 0, rotationZ = 0) {
+  const bevel = Math.min(.16, width * .08, height * .08), shape = new THREE.Shape();
+  shape.moveTo(-width / 2 + bevel, -height / 2); shape.lineTo(width / 2 - bevel, -height / 2); shape.lineTo(width / 2, -height / 2 + bevel); shape.lineTo(width / 2, height / 2 - bevel); shape.lineTo(width / 2 - bevel, height / 2); shape.lineTo(-width / 2 + bevel, height / 2); shape.lineTo(-width / 2, height / 2 - bevel); shape.lineTo(-width / 2, -height / 2 + bevel); shape.closePath();
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelSegments: 2, bevelSize: bevel * .55, bevelThickness: bevel * .4, curveSegments: 2 }); geometry.translate(0, 0, -depth / 2);
+  const mesh = meshFlags(new THREE.Mesh(geometry, mats[kind]), false); mesh.position.set(x, y, z); mesh.rotation.set(0, rotationY, rotationZ); root.add(mesh); return mesh;
+}
+function addVoussoir(group, mats, kind, innerRadius, outerRadius, a0, a1, depth) {
+  const shape = new THREE.Shape(); shape.moveTo(Math.cos(a0) * innerRadius, Math.sin(a0) * innerRadius); shape.lineTo(Math.cos(a0) * outerRadius, Math.sin(a0) * outerRadius); shape.lineTo(Math.cos(a1) * outerRadius, Math.sin(a1) * outerRadius); shape.lineTo(Math.cos(a1) * innerRadius, Math.sin(a1) * innerRadius); shape.closePath();
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelSegments: 2, bevelSize: .075, bevelThickness: .06, curveSegments: 2 }); geometry.translate(0, 0, -depth / 2);
+  group.add(meshFlags(new THREE.Mesh(geometry, mats[kind]), false));
+}
+function addColumn(group, mats, x, legHeight, depth, width, rng) {
+  const layers = Math.max(5, Math.round(legHeight / 2.2));
+  for (let row = 0; row < layers; row++) {
+    const y = .75 + row * (legHeight - 1.5) / layers, h = (legHeight - 1.55) / layers * 1.02, blocks = row % 2 ? 2 : 1;
+    for (let b = 0; b < blocks; b++) { const w = blocks === 1 ? width * 1.02 : width * .54, bx = x + (blocks === 1 ? 0 : (b ? width * .24 : -width * .24)) + (rng() - .5) * .06; addStone(group, mats, row % 4 === 0 ? 'edge' : 'stone', bx, y, (rng() - .5) * .12, w, h, depth * (.9 + rng() * .12), (rng() - .5) * .045, (rng() - .5) * .02); }
+  }
+  addStone(group, mats, 'edge', x, .38, 0, width * 1.75, .46, depth * 1.25); addStone(group, mats, 'stone', x, .72, 0, width * 1.48, .22, depth * 1.1); addStone(group, mats, 'edge', x, legHeight + .22, 0, width * 1.7, .46, depth * 1.3); addStone(group, mats, 'stone', x, legHeight + .58, 0, width * 1.45, .24, depth * 1.1);
+}
 function addArch(root, mats, options = {}) {
-  const { x = 0, y = 0, z = 0, width = 11, height = 14, depth = 3.2, thickness = 1.55, segments = 15, material = 'stone', innerMaterial = 'edge', broken = false, scale = 1 } = options;
-  const group = new THREE.Group(); group.position.set(x, y, z); group.scale.setScalar(scale);
-  const legHeight = height * .49, pillarWidth = Math.max(1.35, width * .16), sideOffset = width * .5 - pillarWidth * .5;
-  const outerRadius = width * .5, innerRadius = outerRadius - thickness;
-  const shape = new THREE.Shape(); shape.moveTo(-outerRadius, 0); shape.lineTo(-outerRadius, legHeight); shape.absarc(0, legHeight, outerRadius, Math.PI, 0, true); shape.lineTo(outerRadius, 0); shape.closePath();
-  const opening = new THREE.Path(); opening.moveTo(-innerRadius, 0); opening.lineTo(innerRadius, 0); opening.lineTo(innerRadius, legHeight); opening.absarc(0, legHeight, innerRadius, 0, Math.PI, false); opening.lineTo(-innerRadius, 0); opening.closePath(); shape.holes.push(opening);
-  if (!broken) {
-    const frameGeometry = new THREE.ExtrudeGeometry(shape, { depth: depth * .72, bevelEnabled: true, bevelSegments: 2, bevelSize: .13, bevelThickness: .11, curveSegments: 24 }); frameGeometry.translate(0, 0, -depth * .36);
-    const frame = new THREE.Mesh(frameGeometry, mats[material]); frame.name = 'continuous-masonry-arch'; frame.castShadow = frame.receiveShadow = true; group.add(frame);
-  }
-  addBox(group, mats, material, -sideOffset, legHeight * .5, 0, pillarWidth, legHeight, depth); addBox(group, mats, material, sideOffset, legHeight * .5, 0, pillarWidth, legHeight, depth);
-  for (const side of [-1, 1]) {
-    addBox(group, mats, innerMaterial, side * sideOffset, .28, 0, pillarWidth * 1.52, .56, depth * 1.3);
-    addBox(group, mats, material, side * sideOffset, .78, 0, pillarWidth * 1.32, .44, depth * 1.2);
-    addBox(group, mats, innerMaterial, side * sideOffset, 1.15, 0, pillarWidth * 1.15, .26, depth * 1.08);
-    addBox(group, mats, innerMaterial, side * sideOffset, legHeight + .18, 0, pillarWidth * 1.58, .42, depth * 1.32);
-    addBox(group, mats, material, side * sideOffset, legHeight + .58, 0, pillarWidth * 1.38, .38, depth * 1.2);
-    addBox(group, mats, innerMaterial, side * sideOffset, legHeight + .91, 0, pillarWidth * 1.18, .22, depth * 1.08);
-    addBox(group, mats, 'deep', side * sideOffset, legHeight * .5, depth * .51, pillarWidth * .52, legHeight * .57, .16);
-    addBox(group, mats, innerMaterial, side * sideOffset, legHeight * .5, depth * .605, pillarWidth * .68, .16, .09);
-    for (let row = 0; row < 4; row++) addBox(group, mats, row % 2 ? innerMaterial : material, side * sideOffset, 1.5 + row * 2.25, depth * .55, pillarWidth * .28, .17, .16);
-    for (let row = 0; row < 5; row++) {
-      const brickY = 1.35 + row * 1.75;
-      addBox(group, mats, row % 3 === 0 ? innerMaterial : material, side * (outerRadius + 1.4 + (row % 2) * .42), brickY, -.1, 2.4 + (row % 2) * .65, 1.5, depth * .84, side * .025);
-    }
-  }
-  const radius = width * .5 - pillarWidth * .24, centerY = legHeight, archGroup = new THREE.Group();
-  for (let i = 0; i <= segments; i++) {
-    const angle = Math.PI * i / segments, blockWidth = Math.max(.72, Math.PI * radius / segments * 1.04);
-    const block = new THREE.Mesh(new THREE.BoxGeometry(blockWidth, thickness, depth), mats[i % 3 === 0 ? innerMaterial : material]);
-    block.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0); block.rotation.z = -angle + Math.PI * .5; block.castShadow = block.receiveShadow = true; archGroup.add(block);
-    if (broken && ([0, 1, segments - 1, segments, Math.floor(segments * .58)].includes(i))) block.visible = false;
-  }
-  archGroup.position.y = centerY; group.add(archGroup);
-  if (broken) {
-    const apex = legHeight + outerRadius;
-    for (const part of [[-width * .37, apex + .42, .2, 2.7], [width * .29, apex + .18, -.1, 2.1], [width * .42, apex + .85, .25, 1.5]]) addBox(group, mats, material, part[0], part[1], part[2], part[3], .65 + part[3] * .16, depth * .94, part[0] > 0 ? -.13 : .11, part[0] > 0 ? -.08 : .06);
-    for (let row = 0; row < 3; row++) {
-      const count = 7 - row, span = width * .78 - row * 1.1;
-      for (let i = 0; i < count; i++) {
-        if (row === 0 && (i === 1 || i === count - 2)) continue;
-        const x = -span * .5 + (span / Math.max(1, count - 1)) * i + (row % 2 ? .35 : -.18);
-        addBox(group, mats, row === 1 && i % 3 === 0 ? innerMaterial : material, x, apex + 1.1 + row * 1.15 + (i % 2) * .12, .05, 2.6 - row * .22, .9, depth * .92, (i % 2 ? -.06 : .04), 0);
-      }
-    }
-  }
+  const { x = 0, y = 0, z = 0, width = 11, height = 14, depth = 3.2, thickness = 1.55, segments = 19, broken = false, scale = 1, seed = 12 } = options;
+  const rng = randomSource(seed), group = new THREE.Group(); group.position.set(x, y, z); group.scale.setScalar(scale); const legHeight = height * .49, pillarWidth = Math.max(1.45, width * .17), outerRadius = width * .5, innerRadius = outerRadius - thickness;
+  addColumn(group, mats, -width * .5 + pillarWidth * .5, legHeight, depth, pillarWidth, rng); addColumn(group, mats, width * .5 - pillarWidth * .5, legHeight, depth, pillarWidth, rng);
+  for (const side of [-1, 1]) { const px = side * (width * .5 - pillarWidth * .5), front = depth * .53; addBox(group, mats, 'groove', px, legHeight * .5, front, pillarWidth * .38, legHeight * .7, .08); for (let row = 0; row < 4; row++) addBox(group, mats, row % 2 ? 'edge' : 'groove', px, 1.9 + row * 2.55, front + .06, pillarWidth * .74, .12, .08); }
+  const archGroup = new THREE.Group(); archGroup.position.y = legHeight;
+  for (let i = 0; i < segments; i++) { const gap = .018 + rng() * .012, a0 = Math.PI * i / segments + gap, a1 = Math.PI * (i + 1) / segments - gap, missing = broken && (i === 0 || i === 1 || i === segments - 1 || i === segments - 2 || i === Math.floor(segments * .58)); if (!missing) addVoussoir(archGroup, mats, i % 5 === 0 ? 'edge' : 'stone', innerRadius, outerRadius, a0, a1, depth * (.92 + rng() * .1)); }
+  group.add(archGroup); const apex = legHeight + outerRadius, wallRows = broken ? 1 : 2;
+  for (let row = 0; row < wallRows; row++) { const count = Math.max(3, Math.round(width / 2.4) - row), span = width * (.86 - row * .09); for (let i = 0; i < count; i++) { if (broken && row === 0 && (i === 1 || i === count - 2)) continue; const px = -span * .5 + span * i / Math.max(1, count - 1) + (rng() - .5) * .28; addStone(group, mats, (i + row) % 5 === 0 ? 'edge' : 'stone', px, apex + .42 + row * 1.08 + (rng() - .5) * .16, (rng() - .5) * .1, 2.05 + rng() * .72, .7 + rng() * .35, depth * (.82 + rng() * .2), (rng() - .5) * .12, (rng() - .5) * .06); } }
+  if (broken) for (let i = 0; i < 6; i++) { const side = i % 2 ? 1 : -1, px = side * (outerRadius + .8 + rng() * 2.6), py = apex - .1 + rng() * 2.2; addStone(group, mats, i % 3 ? 'stone' : 'edge', px, py, (rng() - .5) * .2, 1.15 + rng() * 1.8, .5 + rng() * 1.15, depth * (.7 + rng() * .3), side * (rng() * .15 - .05), (rng() - .5) * .22); }
   root.add(group); return group;
 }
-
-function addRuneRing(root, mats, radius, y, z, tube, color) { const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 8, 96), mats[color]); ring.rotation.x = -Math.PI / 2; ring.position.set(0, y, z); ring.name = `sanctum-rune-ring-${radius}`; root.add(ring); return ring; }
-
-function addCrystal(root, mats, x, y, z, height, radius, color, rotation = 0) {
-  const group = new THREE.Group(); group.position.set(x, y, z); group.rotation.y = rotation;
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(radius * .54, radius, height * .62, 6), mats[color]); body.position.y = -height * .31; body.castShadow = true; group.add(body);
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(radius, height * .38, 6), mats[color]); tip.position.y = -height * .81; tip.rotation.z = Math.PI; group.add(tip); root.add(group); return group;
+function addSector(root, mats, kind, radius, innerRadius, a0, a1, y, thickness, zOffset = 13) {
+  const shape = new THREE.Shape(); shape.moveTo(Math.cos(a0) * innerRadius, Math.sin(a0) * innerRadius); shape.lineTo(Math.cos(a0) * radius, Math.sin(a0) * radius); shape.lineTo(Math.cos(a1) * radius, Math.sin(a1) * radius); shape.lineTo(Math.cos(a1) * innerRadius, Math.sin(a1) * innerRadius); shape.closePath();
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: true, bevelSegments: 2, bevelSize: .06, bevelThickness: .045, curveSegments: 2 }); geometry.translate(0, 0, -thickness / 2); const mesh = meshFlags(new THREE.Mesh(geometry, mats[kind]), false); mesh.rotation.x = -Math.PI / 2; mesh.position.set(0, y, zOffset); root.add(mesh); return mesh;
 }
-
-function addGuardian(root, mats, x, z, turn = 0) {
-  const group = new THREE.Group(); group.position.set(x, .25, z); group.rotation.y = turn;
-  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.32, .65, 8), mats.edge); pedestal.position.y = .33; group.add(pedestal);
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(.62, 2.2, 6, 10), mats.stone); body.position.y = 2.2; group.add(body);
-  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(1.75, .48, .72), mats.edge); shoulders.position.y = 3.05; group.add(shoulders);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(.48, 12, 10), mats.wet); head.position.y = 3.75; group.add(head);
-  const helmet = new THREE.Mesh(new THREE.ConeGeometry(.58, .85, 6), mats.edge); helmet.position.y = 4.38; group.add(helmet);
-  const shield = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.08, .22, 10), mats.edge); shield.position.set(.72, 2.2, .54); shield.rotation.x = Math.PI / 2; group.add(shield);
-  const spear = new THREE.Mesh(new THREE.CylinderGeometry(.07, .09, 5.2, 8), mats.wet); spear.position.set(-.72, 2.45, .25); spear.rotation.z = -.05; group.add(spear);
-  group.traverse(object => { if (object.isMesh) { object.castShadow = true; object.receiveShadow = true; } }); root.add(group); return group;
+function addRuneRing(root, mats, radius, y, z, tube, color, segments = 14) {
+  const groove = new THREE.Mesh(new THREE.TorusGeometry(radius, tube * 1.75, 8, 96), mats.groove); groove.rotation.x = -Math.PI / 2; groove.position.set(0, y - .035, z); root.add(groove); const arc = Math.PI * 2 / segments, group = new THREE.Group(); group.position.set(0, y, z);
+  for (let i = 0; i < segments; i++) { const piece = meshFlags(new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 7, 12, arc * .68), mats[color])); piece.rotation.x = -Math.PI / 2; piece.rotation.y = i * arc + .08; piece.position.y = .012; group.add(piece); } root.add(group); return group;
 }
-
+function addMedallion(root, mats, x, y, z, radius, rotation = 0) {
+  const outer = meshFlags(new THREE.Mesh(new THREE.TorusGeometry(radius, .12, 6, 20), mats.groove), false); outer.rotation.x = -Math.PI / 2; outer.rotation.z = rotation; outer.position.set(x, y, z); root.add(outer); const inner = meshFlags(new THREE.Mesh(new THREE.TorusGeometry(radius * .56, .07, 6, 16), mats.edge), false); inner.rotation.x = -Math.PI / 2; inner.rotation.z = rotation; inner.position.set(x, y + .025, z); root.add(inner);
+  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + rotation; const spoke = addBox(root, mats, i % 2 ? 'groove' : 'edge', x + Math.cos(a) * radius * .42, y + .035, z + Math.sin(a) * radius * .42, .12, .05, radius * .62, -a); spoke.castShadow = false; }
+}
+function addBridgeSlab(root, mats, x, y, z, width, depth, rotationY, rotationZ, scale = 1) {
+  const group = new THREE.Group(); group.position.set(x, y, z); group.rotation.set(0, rotationY, rotationZ);
+  addStone(group, mats, 'wet', 0, 0, 0, width, .62 * scale, depth, 0, 0);
+  addStone(group, mats, 'edge', 0, .34 * scale, 0, width * .92, .14 * scale, depth * .9, 0, 0);
+  addMedallion(group, mats, 0, .43 * scale, 0, Math.min(width, depth) * .44, .18);
+  addBox(group, mats, 'moss', -width * .34, .42 * scale, depth * .34, width * .22, .08, .12, 0, .05).castShadow = false;
+  addBox(group, mats, 'moss', width * .28, .42 * scale, -depth * .36, width * .18, .07, .11, 0, -.04).castShadow = false;
+  return root.add(group), group;
+}
+function addCrystal(root, mats, x, y, z, height, radius, color, rotation = 0, hero = false, rng = Math.random) {
+  const sides = 7, positions = [], indices = []; for (const [level, factor] of [[0, .9], [.56, 1], [.82, .62]]) for (let i = 0; i < sides; i++) { const a = i / sides * Math.PI * 2 + (rng() - .5) * .18; positions.push(Math.cos(a) * radius * factor * (.9 + rng() * .18), -height * level + height * .02, Math.sin(a) * radius * factor * (.9 + rng() * .18)); }
+  positions.push(0, -height, 0); const tip = positions.length / 3 - 1; for (let ring = 0; ring < 2; ring++) for (let i = 0; i < sides; i++) { const n = (i + 1) % sides, a = ring * sides + i, b = ring * sides + n, c = (ring + 1) * sides + n, d = (ring + 1) * sides + i; indices.push(a, b, c, a, c, d); } for (let i = 0; i < sides; i++) { const n = (i + 1) % sides; indices.push(2 * sides + i, 2 * sides + n, tip); }
+  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); const shellColor = color === 'violet' ? 0x9e5dff : color === 'lilac' ? 0xc593ff : 0x48d9ff; const shell = new THREE.MeshPhysicalMaterial({ color: shellColor, emissive: shellColor, emissiveIntensity: hero ? 1.7 : 1.08, roughness: .16, metalness: .02, clearcoat: .8, clearcoatRoughness: .12, transmission: .16, thickness: .65, transparent: true, opacity: .92 });
+  const group = new THREE.Group(); group.position.set(x, y, z); group.rotation.set((rng() - .5) * .28, rotation, (rng() - .5) * .28); group.add(meshFlags(new THREE.Mesh(geometry, shell)));
+  for (let i = 0; i < 3; i++) { const shard = meshFlags(new THREE.Mesh(new THREE.ConeGeometry(radius * (.18 + rng() * .16), height * (.18 + rng() * .22), 6), shell)); shard.position.set((rng() - .5) * radius * 1.5, -height * (.12 + rng() * .22), (rng() - .5) * radius * 1.5); shard.rotation.set((rng() - .5) * .6, rng() * Math.PI, (rng() - .5) * .6); group.add(shard); }
+  if (hero) { const light = new THREE.PointLight(shellColor, 18, 23, 2); light.position.y = -height * .42; group.add(light); } root.add(group); return group;
+}
+function addGuardianRelief(root, mats, x, z, turn = 0) {
+  const group = new THREE.Group(); group.position.set(x, .3, z); group.rotation.y = turn; group.scale.set(1, 1.65, 1); addBox(group, mats, 'deep', 0, 2.2, 0, 1.5, 4.6, .24);
+  const shape = new THREE.Shape(); shape.moveTo(-.54, 0); shape.lineTo(-.76, 1.55); shape.lineTo(-.45, 2.45); shape.lineTo(-.68, 3.25); shape.lineTo(0, 3.72); shape.lineTo(.68, 3.25); shape.lineTo(.45, 2.45); shape.lineTo(.76, 1.55); shape.lineTo(.54, 0); shape.closePath(); const bodyGeo = new THREE.ExtrudeGeometry(shape, { depth: .2, bevelEnabled: true, bevelSegments: 2, bevelSize: .04, bevelThickness: .03 }); bodyGeo.translate(0, 0, -.1); const body = meshFlags(new THREE.Mesh(bodyGeo, mats.stone)); body.position.z = .23; group.add(body);
+  addBox(group, mats, 'edge', 0, 2.62, .39, 1.05, .18, .08); addBox(group, mats, 'edge', -.42, 2.1, .39, .14, 1.2, .08, 0, -.24); addBox(group, mats, 'edge', .42, 2.1, .39, .14, 1.2, .08, 0, .24); const shield = meshFlags(new THREE.Mesh(new THREE.CylinderGeometry(.55, .63, .16, 12), mats.edge)); shield.rotation.x = Math.PI / 2; shield.position.set(.55, 1.85, .43); group.add(shield); addBox(group, mats, 'wet', -.58, 2.18, .43, .07, 2.95, .08, 0, -.05); root.add(group); return group;
+}
 function stoneTexture(seed) {
-  const rng = randomSource(seed), canvas = document.createElement('canvas'); canvas.width = canvas.height = 512; const context = canvas.getContext('2d');
-  const image = context.createImageData(512, 512);
-  for (let y = 0; y < 512; y++) for (let x = 0; x < 512; x++) { const i = (y * 512 + x) * 4, grain = (rng() - .5) * 44; const value = Math.max(92, Math.min(232, 176 + grain)); image.data[i] = value * .88; image.data[i + 1] = value * .94; image.data[i + 2] = value; image.data[i + 3] = 255; }
-  context.putImageData(image, 0, 0);
-  for (let i = 0; i < 120; i++) { const x = rng() * 512, y = rng() * 512, radius = 8 + rng() * 42, gradient = context.createRadialGradient(x, y, 0, x, y, radius); gradient.addColorStop(0, rng() < .55 ? 'rgba(8,22,30,.20)' : 'rgba(210,230,238,.12)'); gradient.addColorStop(1, 'rgba(0,0,0,0)'); context.fillStyle = gradient; context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); }
-  for (let i = 0; i < 54; i++) { context.beginPath(); let x = rng() * 512, y = rng() * 512; context.moveTo(x, y); for (let k = 0; k < 7; k++) { x += (rng() - .43) * 28; y += (rng() - .5) * 24; context.lineTo(x, y); } context.strokeStyle = 'rgba(5,13,20,.42)'; context.lineWidth = .6 + rng() * 1.5; context.stroke(); }
-  const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(2, 2); map.anisotropy = 8;
-  const bump = map.clone(); bump.colorSpace = THREE.NoColorSpace; return { map, bump };
+  const rng = randomSource(seed), canvas = document.createElement('canvas'); canvas.width = canvas.height = 512; const context = canvas.getContext('2d'), image = context.createImageData(512, 512), height = new Uint8ClampedArray(512 * 512);
+  for (let y = 0; y < 512; y++) for (let x = 0; x < 512; x++) { const i = (y * 512 + x) * 4, wave = Math.sin(x * .08 + Math.sin(y * .018) * 4) * 10 + Math.sin(y * .13) * 7, grain = (rng() - .5) * 24, value = Math.max(42, Math.min(218, 124 + wave + grain)); image.data[i] = value * .84; image.data[i + 1] = value * .92; image.data[i + 2] = value; image.data[i + 3] = 255; height[y * 512 + x] = Math.max(0, Math.min(255, value)); }
+  context.putImageData(image, 0, 0); for (let i = 0; i < 170; i++) { const x = rng() * 512, y = rng() * 512, radius = 4 + rng() * 30, gradient = context.createRadialGradient(x, y, 0, x, y, radius); gradient.addColorStop(0, rng() < .5 ? 'rgba(4,14,22,.3)' : 'rgba(220,235,240,.15)'); gradient.addColorStop(1, 'rgba(0,0,0,0)'); context.fillStyle = gradient; context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); }
+  for (let i = 0; i < 70; i++) { context.beginPath(); let x = rng() * 512, y = rng() * 512; context.moveTo(x, y); for (let k = 0; k < 8; k++) { x += (rng() - .46) * 32; y += (rng() - .5) * 26; context.lineTo(x, y); } context.strokeStyle = 'rgba(3,13,20,.5)'; context.lineWidth = .55 + rng() * 1.35; context.stroke(); }
+  const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(2.5, 2.5); map.anisotropy = 8; const bumpCanvas = document.createElement('canvas'); bumpCanvas.width = bumpCanvas.height = 512; const bumpContext = bumpCanvas.getContext('2d'), bumpImage = bumpContext.createImageData(512, 512); for (let i = 0; i < height.length; i++) { bumpImage.data[i * 4] = height[i]; bumpImage.data[i * 4 + 1] = height[i]; bumpImage.data[i * 4 + 2] = height[i]; bumpImage.data[i * 4 + 3] = 255; } bumpContext.putImageData(bumpImage, 0, 0); const bump = new THREE.CanvasTexture(bumpCanvas); bump.wrapS = bump.wrapT = THREE.RepeatWrapping; bump.repeat.copy(map.repeat); bump.anisotropy = 8; return { map, bump };
 }
-
-function softMistTexture() {
-  const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128; const context = canvas.getContext('2d'), gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gradient.addColorStop(0, 'rgba(255,255,255,.8)'); gradient.addColorStop(.35, 'rgba(255,255,255,.28)'); gradient.addColorStop(1, 'rgba(255,255,255,0)'); context.fillStyle = gradient; context.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(canvas);
-}
-
+function softMistTexture() { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128; const context = canvas.getContext('2d'), gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64); gradient.addColorStop(0, 'rgba(255,255,255,.75)'); gradient.addColorStop(.38, 'rgba(255,255,255,.2)'); gradient.addColorStop(1, 'rgba(255,255,255,0)'); context.fillStyle = gradient; context.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(canvas); }
 function addWater(root) {
-  const geometry = new THREE.PlaneGeometry(190, 137, 90, 65); geometry.rotateX(-Math.PI / 2); const position = geometry.attributes.position;
-  for (let i = 0; i < position.count; i++) position.setY(i, -.12 + Math.sin(position.getX(i) * .12 + position.getZ(i) * .08) * .025 + Math.sin(position.getZ(i) * .31) * .012);
-  geometry.computeVertexNormals();
-  const waterMaterial = new THREE.ShaderMaterial({ name: 'sanctum-shallow-water', transparent: true, depthWrite: false, uniforms: { time: { value: 0 }, color: { value: new THREE.Color(0x020d15) }, altarCenter: { value: new THREE.Vector2(root.position.x, root.position.z + 13) } }, vertexShader: `varying vec3 vWorld;varying vec3 vNormal;varying vec2 vUv;void main(){vUv=uv;vWorld=(modelMatrix*vec4(position,1.)).xyz;vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*viewMatrix*vec4(vWorld,1.);}`, fragmentShader: `precision highp float;uniform float time;uniform vec3 color;uniform vec2 altarCenter;varying vec3 vWorld;varying vec3 vNormal;varying vec2 vUv;void main(){float ax=sin(vWorld.x*.18+time*.22)*.018;float az=cos(vWorld.z*.21-time*.17)*.018;vec3 n=normalize(vNormal+vec3(ax,0.,az));vec3 viewDir=normalize(cameraPosition-vWorld);float fresnel=pow(1.-max(0.,dot(n,viewDir)),3.);float ripples=.5+.5*sin(vWorld.x*.22+sin(vWorld.z*.14)+time*.22);float altar=exp(-abs(length(vWorld.xz-altarCenter)-12.)*.38);vec3 c=color+vec3(.01,.035,.05)*fresnel+vec3(.008,.055,.085)*altar*(.28+.14*ripples);float alpha=.38+fresnel*.12+altar*.045;gl_FragColor=vec4(c,alpha);
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-  }` });
-  const water = new THREE.Mesh(geometry, waterMaterial); water.name = 'sanctum-shallow-water'; water.receiveShadow = true; root.add(water); return { waterMaterial };
+  const geometry = new THREE.PlaneGeometry(190, 137, 100, 72); geometry.rotateX(-Math.PI / 2); const position = geometry.attributes.position; for (let i = 0; i < position.count; i++) position.setY(i, -.16 + Math.sin(position.getX(i) * .12 + position.getZ(i) * .08) * .032 + Math.sin(position.getZ(i) * .31) * .014); geometry.computeVertexNormals();
+  const waterMaterial = new THREE.ShaderMaterial({ name: 'sanctum-shallow-water', transparent: true, depthWrite: false, uniforms: { time: { value: 0 }, color: { value: new THREE.Color(0x073041) }, altarCenter: { value: new THREE.Vector2(root.position.x - 1.5, root.position.z + 13) } }, vertexShader: `varying vec3 vWorld;varying vec3 vNormal;void main(){vWorld=(modelMatrix*vec4(position,1.)).xyz;vNormal=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`, fragmentShader: `precision highp float;uniform float time;uniform vec3 color;uniform vec2 altarCenter;varying vec3 vWorld;varying vec3 vNormal;void main(){vec3 n=normalize(vNormal+vec3(sin(vWorld.x*.25+time*.3)*.022,0.,cos(vWorld.z*.2-time*.22)*.022));vec3 viewDir=normalize(cameraPosition-vWorld);float fresnel=pow(1.-max(0.,dot(n,viewDir)),4.);float ripple=.5+.5*sin(vWorld.x*.42+sin(vWorld.z*.18+time*.2)*2.2+time*.32);float ring=exp(-abs(length(vWorld.xz-altarCenter)-11.8)*.35);float glint=smoothstep(.82,1.,ripple);vec3 c=color*(.94+.07*ripple)+vec3(.015,.075,.11)*fresnel+vec3(.02,.12,.16)*ring*(.32+.25*ripple)+vec3(.012,.055,.07)*glint;float alpha=.40+fresnel*.14+ring*.06;gl_FragColor=vec4(c,alpha);}` });
+  const water = meshFlags(new THREE.Mesh(geometry, waterMaterial), false); water.name = 'sanctum-shallow-water'; root.add(water); const reflection = new THREE.Group(); const reflectionMat = new THREE.MeshBasicMaterial({ color: 0x238ea5, transparent: true, opacity: .045, depthWrite: false, depthTest: false, blending: THREE.NormalBlending }); for (const [sx, sz, x, z] of [[13, 4.2, -1.5, 13], [7, 2.1, 2.5, 20], [5, 1.5, -6, 7]]) { const pool = new THREE.Mesh(new THREE.CircleGeometry(1, 40), reflectionMat); pool.rotation.x = -Math.PI / 2; pool.scale.set(sx, sz, 1); pool.position.set(x, -.08, z); reflection.add(pool); } const portalGlow = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 2.2), new THREE.MeshBasicMaterial({ color: 0x1286b5, transparent: true, opacity: .07, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending })); portalGlow.rotation.x = -Math.PI / 2; portalGlow.position.set(11.5, -.08, -40); reflection.add(portalGlow); root.add(reflection); return { waterMaterial };
 }
 
 export function buildSciFiWorld(root, progress = () => {}) {
-  const rng = randomSource(555218);
-  const texture = stoneTexture(55502), textured = { map: texture.map, bumpMap: texture.bump, bumpScale: .18 };
-  const mats = { deep: material(palette.deep, { ...textured, roughness: .98, bumpScale: .25 }), stone: material(palette.stone, { ...textured, roughness: .9 }), edge: material(palette.edge, { ...textured, roughness: .76, metalness: .18, bumpScale: .11 }), wet: material(palette.wet, { ...textured, roughness: .58, metalness: .22, bumpScale: .1 }), moss: material(palette.moss, { ...textured, roughness: .96, bumpScale: .2 }), black: material(0x080f18, { roughness: 1 }), cyan: emissive(0x39cfff, 1.9), blue: emissive(0x247bff, 1.45), violet: emissive(0x8f4cff, 2.25), lilac: emissive(0xc476ff, 1.75) };
-  progress('塑造地下水域与冷色洞窟光照…', 16);
-  const hemisphere = new THREE.HemisphereLight(0x87acd0, 0x07141d, 1.75); hemisphere.position.set(-root.position.x, 1 - root.position.y, -root.position.z); root.add(hemisphere);
-  const key = new THREE.DirectionalLight(0x8eb9dc, 2.1); key.position.set(-35, 62, 42); key.target.position.set(0, 4, -18); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -60, right: 60, top: 75, bottom: -35, far: 190 }); root.add(key, key.target);
-  const frontFill = new THREE.DirectionalLight(0x9cbfe0, 2.65); frontFill.position.set(0, 24, 54); frontFill.target.position.set(0, 9, -8); root.add(frontFill, frontFill.target);
-  const cyanLight = new THREE.PointLight(0x28cfff, 125, 95, 1.8); cyanLight.position.set(5, 7, -43); root.add(cyanLight);
-  const violetLight = new THREE.PointLight(0x713dff, 55, 72, 1.8); violetLight.position.set(-2, 23, 4); root.add(violetLight);
-  const waterLight = new THREE.PointLight(0x0d8eae, 34, 85, 1.7); waterLight.position.set(0, .6, 12); root.add(waterLight);
-  const altarLight = new THREE.PointLight(0x35ddff, 72, 46, 1.85); altarLight.position.set(0, 4.5, 13); root.add(altarLight);
-  const skyMaterial = new THREE.MeshBasicMaterial({ color: 0x06121d, side: THREE.BackSide, fog: false }); const sky = new THREE.Mesh(new THREE.SphereGeometry(240, 40, 24), skyMaterial); sky.name = 'sanctum-cavern-darkness'; root.add(sky);
-  addBox(root, mats, 'deep', 0, -.65, -4, 150, 1, 130);
-  const water = addWater(root);
-
-  progress('砌筑两侧断裂石拱与远端门廊…', 31);
-  const leftArch = addArch(root, mats, { x: -14, z: -10, width: 24, height: 24, depth: 4.2, thickness: 2.1, broken: true });
-  const rightArch = addArch(root, mats, { x: 23, z: -12, width: 22.5, height: 23.5, depth: 4.1, thickness: 2, broken: true }); leftArch.rotation.y = .015; rightArch.rotation.y = -.02;
-  addArch(root, mats, { x: 9, z: -43, width: 8.8, height: 12.5, depth: 3.1, thickness: 1.25, segments: 13, material: 'wet', scale: .82 });
-  addArch(root, mats, { x: 9, z: -51, width: 6.5, height: 9.5, depth: 2.5, thickness: 1, segments: 12, material: 'stone', scale: .66 });
-  const portalMaterial = new THREE.ShaderMaterial({ name: 'sanctum-distant-gateway', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { time: { value: 0 } }, vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`, fragmentShader: `precision highp float;varying vec2 vUv;uniform float time;void main(){vec2 p=(vUv-.5)*vec2(1.7,1.);float d=length(p);float curtain=.62+.22*sin(vUv.y*31.+sin(vUv.x*17.+time*.35)*2.-time*.8);float edge=smoothstep(1.,.55,d);float core=exp(-d*d*5.);vec3 color=mix(vec3(.05,.45,.8),vec3(.42,1.4,1.7),core);gl_FragColor=vec4(color*(.55+curtain*.45),edge*(.34+core*.58));}` });
-  const portal = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 7.4), portalMaterial); portal.position.set(9, 5.2, -50.5); portal.name = 'sanctum-distant-energy-door'; root.add(portal);
-
-  progress('铺设远端阶梯、断裂石板与中央祭坛…', 48);
-  for (let i = 0; i < 15; i++) { const t = i / 14, z = -35 - t * 12, width = 8.4 - t * 2.1; addBox(root, mats, i % 4 === 0 ? 'edge' : 'wet', 9, .22 + i * .19, z, width, .44, 1.08); }
-  for (let i = 0; i < 10; i++) { const t = i / 9, x = -17 + t * 12, z = 39 - t * 21; addBox(root, mats, i % 3 === 0 ? 'edge' : 'wet', x + (rng() - .5) * .34, .18 + rng() * .1, z + (rng() - .5) * .3, 5.5 - t * .9, .42, 3.8 - t * .55, -.52 + (rng() - .5) * .05, (rng() - .5) * .035); }
-  for (let i = 0; i < 22; i++) { const x = -29 + rng() * 58, z = -2 + rng() * 35; if (Math.abs(x) < 8 && z > 4) continue; const size = .7 + rng() * 2.2; addBox(root, mats, rng() < .22 ? 'moss' : 'stone', x, .35 + rng() * .5, z, size, .35 + rng() * .8, size * (.65 + rng() * .6), rng() * .5 - .25, rng() * .18 - .09); }
-  const altar = new THREE.Group(); altar.name = 'central-rune-altar'; root.add(altar);
-  for (let layer = 0; layer < 4; layer++) { const radius = 12.4 - layer * 1.25, disk = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius + .28, .62, 48), mats[layer % 2 ? 'wet' : 'edge']); disk.position.set(0, .38 + layer * .54, 13); disk.castShadow = disk.receiveShadow = true; altar.add(disk); }
-  addRuneRing(altar, mats, 10.2, 2.53, 13, .16, 'cyan'); addRuneRing(altar, mats, 7.2, 2.56, 13, .13, 'blue'); addRuneRing(altar, mats, 4.1, 2.6, 13, .11, 'cyan');
-  const core = new THREE.Mesh(new THREE.CylinderGeometry(2.25, 2.5, .14, 48), mats.cyan); core.position.set(0, 2.68, 13); altar.add(core);
-  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = 8.5; const rune = addBox(altar, mats, i % 2 ? 'blue' : 'cyan', Math.cos(a) * r, 2.67, 13 + Math.sin(a) * r, .28, .08, 1.1); rune.rotation.y = -a; }
-  for (let i = 0; i < 18; i++) { const a = rng() * Math.PI * 2, r = 13 + rng() * 7; addBox(root, mats, rng() < .4 ? 'moss' : 'stone', Math.cos(a) * r, .25 + rng() * .38, 13 + Math.sin(a) * r, .8 + rng() * 1.8, .35 + rng() * .65, .7 + rng() * 1.9, rng() * .7, rng() * .16 - .08); }
-  addGuardian(root, mats, -10.5, -2.5, .18); addGuardian(root, mats, 11.5, -5, -.24);
-
-  progress('悬挂洞窟岩层与蓝紫发光晶簇…', 69);
-  const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
-  for (let i = 0; i < 38; i++) { const rock = new THREE.Mesh(rockGeometry, i % 5 === 0 ? mats.stone : mats.deep); rock.position.set(-50 + rng() * 100, 41 + rng() * 6, -62 + rng() * 77); rock.scale.set(6 + rng() * 10, 2.2 + rng() * 4.4, 5 + rng() * 10); rock.rotation.set(rng() * .45, rng() * Math.PI, rng() * .35); rock.castShadow = rock.receiveShadow = true; root.add(rock); }
-  for (let i = 0; i < 34; i++) { const x = -43 + rng() * 86, z = -58 + rng() * 57; if (Math.abs(x) < 12 && z < -18 && rng() < .55) continue; const h = 3 + rng() * 6.2, radius = .28 + rng() * .72; addCrystal(root, mats, x, 42 + rng() * 4, z, h, radius, rng() < .48 ? 'violet' : rng() < .52 ? 'lilac' : 'cyan', rng() * Math.PI); }
-  for (const [x, z, h, r, kind] of [[-20,-23,10,1.1,'violet'],[-7,-28,13,1.25,'cyan'],[4,-25,14,1.35,'cyan'],[18,-25,10.5,1.05,'violet'],[-33,-15,9,.9,'lilac'],[35,-19,9.5,1,'violet']]) addCrystal(root, mats, x, 44, z, h, r, kind, rng() * Math.PI);
-
-  progress('补齐墙面断柱、倒塌石碑与冷雾…', 84);
-  for (const side of [-1, 1]) for (let i = 0; i < 9; i++) { const x = side * (29 + rng() * 10), z = -50 + i * 6 + rng() * 2, h = 5 + rng() * 9; addBox(root, mats, 'deep', x, h * .5, z, 3.2 + rng() * 2.8, h, 3.4, rng() * .12, rng() * .06 - .03); addBox(root, mats, 'stone', x - side * 1.65, h * .62, z + .15, .36, h * .52, 2.2, 0, .02); if (rng() < .7) addBox(root, mats, 'edge', x, h + .2, z, 4.1, .45, 3.8, rng() * .1, 0); }
-  for (let i = 0; i < 16; i++) { const side = i % 2 ? -1 : 1, x = side * (13 + rng() * 19), z = -7 + rng() * 33, h = 2 + rng() * 4; addBox(root, mats, 'edge', x, h * .5, z, .8 + rng() * 1.5, h, .45 + rng() * .8, rng() * .8, rng() * .22 - .11); }
-  const mistTexture = softMistTexture();
-  for (let i = 0; i < 24; i++) { const mist = new THREE.Sprite(new THREE.SpriteMaterial({ map: mistTexture, color: 0x2b88a2, transparent: true, opacity: .055, depthWrite: false, blending: THREE.AdditiveBlending })); mist.position.set(-42 + rng() * 84, 1 + rng() * 11, -60 + rng() * 64); mist.scale.set(10 + rng() * 16, 4 + rng() * 8, 1); root.add(mist); }
-  return { blockCount: 510, setView() {}, update(time) { water.waterMaterial.uniforms.time.value = time; portalMaterial.uniforms.time.value = time; cyanLight.intensity = 118 + Math.sin(time * .8) * 8; violetLight.intensity = 50 + Math.sin(time * .47 + 1.1) * 8; } };
+  const rng = randomSource(555218), texture = stoneTexture(55502), textured = { map: texture.map, bumpMap: texture.bump, bumpScale: .13 }; const mats = { deep: material(palette.deep, { ...textured, roughness: .96, bumpScale: .2, emissive: 0x0a2230, emissiveIntensity: .14 }), stone: material(palette.stone, { ...textured, roughness: .84, emissive: 0x1b3d50, emissiveIntensity: .14 }), edge: material(palette.edge, { ...textured, roughness: .68, bumpScale: .1, emissive: 0x234b61, emissiveIntensity: .12 }), wet: new THREE.MeshPhysicalMaterial({ color: palette.wet, ...textured, roughness: .3, metalness: .02, clearcoat: .35, clearcoatRoughness: .16, emissive: 0x0a2938, emissiveIntensity: .08 }), moss: material(palette.moss, { ...textured, roughness: .94, bumpScale: .2, emissive: 0x102a24, emissiveIntensity: .06 }), groove: material(palette.groove, { roughness: 1 }), cyan: emissive(0x28bce8, 1.8), blue: emissive(0x1e6dce, 1.2), violet: emissive(0x8647df, 1.25), lilac: emissive(0xbd72f0, 1.05) };
+  progress('塑造地下水域与湿润洞窟光照…', 14); const hemisphere = new THREE.HemisphereLight(0x9ed5ec, 0x102f43, 1.08); hemisphere.position.set(-root.position.x, 1 - root.position.y, -root.position.z); root.add(hemisphere); const key = new THREE.DirectionalLight(0xb8e6fb, 2.3); key.position.set(-35, 62, 42); key.target.position.set(0, 4, -18); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -60, right: 60, top: 75, bottom: -35, far: 190 }); root.add(key, key.target); const frontFill = new THREE.DirectionalLight(0xa9d9ed, .86); frontFill.position.set(0, 24, 54); frontFill.target.position.set(0, 9, -8); root.add(frontFill, frontFill.target); const cyanLight = new THREE.PointLight(0x28cfff, 170, 115, 1.8); cyanLight.position.set(11.5, 12, -43); root.add(cyanLight); const violetLight = new THREE.PointLight(0x713dff, 94, 90, 1.8); violetLight.position.set(-2, 23, 4); root.add(violetLight); const waterLight = new THREE.PointLight(0x0d8eae, 62, 100, 1.7); waterLight.position.set(-1.5, .8, 12); root.add(waterLight); const altarLight = new THREE.PointLight(0x35ddff, 108, 58, 1.85); altarLight.position.set(-1.5, 4.5, 13); root.add(altarLight);
+  const archLightL = new THREE.PointLight(0x76b3d2, 132, 48, 2); archLightL.position.set(-14, 10, 4); root.add(archLightL); const archLightR = new THREE.PointLight(0x76b3d2, 132, 48, 2); archLightR.position.set(21, 10, 2); root.add(archLightR);
+  // Restrained blue fills preserve silhouette while revealing the cavern shell,
+  // arch reliefs and distant masonry between the focal lights.
+  const roofFill = new THREE.PointLight(0x3d89b0, 64, 112, 1.45); roofFill.position.set(0, 32, -8); root.add(roofFill);
+  const rearFill = new THREE.PointLight(0x1d5c86, 48, 100, 1.5); rearFill.position.set(0, 14, -30); root.add(rearFill);
+  const leftFill = new THREE.PointLight(0x2d7694, 34, 42, 1.65); leftFill.position.set(-26, 9, -8); root.add(leftFill);
+  const rightFill = new THREE.PointLight(0x2d7694, 34, 42, 1.65); rightFill.position.set(32, 9, -8); root.add(rightFill);
+  const caveMaterial = new THREE.MeshStandardMaterial({ color: 0x365f77, emissive: 0x173c51, emissiveIntensity: .95, ...textured, roughness: 1, side: THREE.BackSide }); const cave = new THREE.Mesh(new THREE.SphereGeometry(120, 56, 32), caveMaterial); cave.position.y = -45; cave.name = 'continuous-cavern-shell'; root.add(cave); addBox(root, mats, 'deep', 0, -.72, -4, 150, 1, 130); const water = addWater(root);
+  // A broken rear wall gives the arches a believable masonry mass and catches the blue spill light.
+  for (const [x, y, w, h, rz] of [[-37, 7, 5.8, 13, -.02], [-34, 18, 5.2, 9, .03], [42, 7, 5.8, 13, .02], [39, 18, 5.2, 9, -.03]]) addStone(root, mats, 'stone', x, y, -23, w, h, 1.5, 0, rz);
+  for (let i = 0; i < 8; i++) addStone(root, mats, i % 3 ? 'stone' : 'edge', -25 + i * 7.2, 30.5 + (i % 2) * .35, -23, 5.6, 3.6 + (i % 3) * .45, 1.5, (rng() - .5) * .05, (rng() - .5) * .04);
+  for (const side of [-1, 1]) for (let i = 0; i < 5; i++) { const x = side * (31 + i * 2.2), y = 4.5 + (i % 2) * 1.2, z = -19 - (i % 3) * 5; addStone(root, mats, i % 3 ? 'stone' : 'edge', x, y, z, 2.2, 7.5 + (i % 2) * 3.5, 1.4, (rng() - .5) * .06, (rng() - .5) * .04); }
+  const beamMat = new THREE.MeshBasicMaterial({ color: 0x2a9fce, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  progress('砌筑断裂楔石拱门与纵深回廊…', 30); addArch(root, mats, { x: -12.8, y: .8, z: -10, width: 21.5, height: 32, depth: 4.2, thickness: 2.1, broken: true, seed: 11 }); addArch(root, mats, { x: 21, y: .8, z: -12, width: 21, height: 32, depth: 4.1, thickness: 2, broken: true, seed: 39 }); addArch(root, mats, { x: 11.5, z: -43, width: 13.5, height: 32, depth: 3.3, thickness: 1.35, segments: 17, seed: 80 }); addArch(root, mats, { x: 11.5, z: -51, width: 9.5, height: 26, depth: 2.7, thickness: 1.05, segments: 15, seed: 100 });
+  const portalMaterial = new THREE.ShaderMaterial({ name: 'sanctum-distant-gateway', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { time: { value: 0 } }, vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`, fragmentShader: `precision highp float;varying vec2 vUv;uniform float time;void main(){vec2 p=(vUv-.5)*vec2(1.7,1.);float d=length(p);float curtain=.62+.22*sin(vUv.y*31.+sin(vUv.x*17.+time*.35)*2.-time*.8);float edge=smoothstep(1.,.5,d);float core=exp(-d*d*5.);vec3 color=mix(vec3(.03,.3,.65),vec3(.28,1.2,1.6),core);gl_FragColor=vec4(color*(.5+curtain*.5),edge*(.3+core*.65));}` });
+  const portalBack = new THREE.Mesh(new THREE.PlaneGeometry(5.35, 12.5), new THREE.MeshBasicMaterial({ color: 0x041a2a, transparent: true, opacity: .9, side: THREE.DoubleSide })); portalBack.position.set(11.5, 11.5, -50.78); root.add(portalBack);
+  const portal = new THREE.Mesh(new THREE.PlaneGeometry(5.7, 13), portalMaterial); portal.position.set(11.5, 11.5, -50.5); portal.name = 'sanctum-distant-energy-door'; root.add(portal);
+  const portalFrame = new THREE.Mesh(new THREE.TorusGeometry(3.05, .16, 8, 48, Math.PI), mats.cyan); portalFrame.position.set(11.5, 11.5, -50.2); portalFrame.rotation.z = 0; root.add(portalFrame);
+  addBox(root, mats, 'cyan', 8.45, 8.25, -50.2, .28, 6.45, .22); addBox(root, mats, 'cyan', 14.55, 8.25, -50.2, .28, 6.45, .22);
+  for (let i = 0; i < 12; i++) { const t = i / 11; addBox(root, mats, i % 3 ? 'wet' : 'edge', 11.5, .2 + i * .27, -35 - t * 15, 10.5 - t * 3.2, .5, 1.08); }
+  const bridge = [[-19, 30, 7.8, 5.2], [-16, 27, 7.4, 4.9], [-13, 24, 6.9, 4.6], [-10, 20.5, 6.3, 4.2], [-8.5, 17.5, 5.8, 3.8], [-8.5, 15.5, 5.3, 3.5]]; bridge.forEach(([x, z, width, depth], i) => addBridgeSlab(root, mats, x, .08 + i * .025, z, width, depth, -.5 + (rng() - .5) * .08, (rng() - .5) * .025, 1 - i * .035));
+  for (const side of [-1, 1]) for (let i = 0; i < 4; i++) { const x = side * (17 + rng() * 8), z = 7 + i * 5.3 + rng() * 1.2; addBridgeSlab(root, mats, x, .08 + rng() * .08, z, 3.8 + rng() * 1.2, 2.8 + rng() * .8, side * (.35 + rng() * .25), (rng() - .5) * .34, .72 + rng() * .18); }
+  progress('雕刻分段祭坛、石槽与圆形徽纹…', 49); const altar = new THREE.Group(); altar.name = 'central-rune-altar'; altar.position.x = -1.5; root.add(altar); for (let layer = 0; layer < 4; layer++) { const radius = 12.6 - layer * 1.2, count = 28, gap = .025; for (let i = 0; i < count; i++) { const a = i * Math.PI * 2 / count; if (layer === 0 && [4, 19].includes(i)) continue; const kind = i % 7 === 0 ? 'edge' : layer % 2 ? 'wet' : 'stone'; addSector(altar, mats, kind, radius, radius - 1.12, a + gap, a + Math.PI * 2 / count - gap, .32 + layer * .57, .62, 13); } } addRuneRing(altar, mats, 10.25, 2.56, 13, .14, 'cyan', 18); addRuneRing(altar, mats, 7.12, 2.59, 13, .11, 'blue', 16); addRuneRing(altar, mats, 4.08, 2.62, 13, .085, 'cyan', 13); const core = new THREE.Mesh(new THREE.CircleGeometry(2.2, 48), mats.cyan); core.rotation.x = -Math.PI / 2; core.position.set(0, 2.67, 13); altar.add(core); for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, r = 8.65; addBox(altar, mats, i % 3 ? 'groove' : 'blue', Math.cos(a) * r, 2.68, 13 + Math.sin(a) * r, .22, .06, 1.05, -a); } for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + .2; addMedallion(altar, mats, Math.cos(a) * 5.45, 2.66, 13 + Math.sin(a) * 5.45, 1.05, a); } for (let i = 0; i < 20; i++) { const a = rng() * Math.PI * 2, r = 13.5 + rng() * 7; addStone(root, mats, rng() < .36 ? 'moss' : 'stone', Math.cos(a) * r - 1.5, .2 + rng() * .42, 13 + Math.sin(a) * r, .8 + rng() * 1.8, .38 + rng() * .7, .7 + rng() * 1.9, rng() * .7, rng() * .16 - .08); } addGuardianRelief(root, mats, -21.5, -8, .18); addGuardianRelief(root, mats, 28.5, -8, -.24); addGuardianRelief(root, mats, -40, 6, .18); addGuardianRelief(root, mats, 41, 8, -.2);
+  progress('悬挂连续岩顶、英雄晶簇与冷色反光…', 69); const rockGeometry = new THREE.DodecahedronGeometry(1, 1); for (let i = 0; i < 24; i++) { const rock = meshFlags(new THREE.Mesh(rockGeometry, i % 5 === 0 ? mats.stone : mats.deep)); rock.position.set(-52 + rng() * 104, 46 + rng() * 6, -64 + rng() * 80); rock.scale.set(7 + rng() * 11, 2.7 + rng() * 4.8, 6 + rng() * 11); rock.rotation.set(rng() * .45, rng() * Math.PI, rng() * .35); root.add(rock); } for (let i = 0; i < 16; i++) { const stal = meshFlags(new THREE.Mesh(new THREE.ConeGeometry(.55 + rng() * 1.15, 3.5 + rng() * 5.5, 7), mats.deep), false); stal.position.set(-48 + rng() * 96, 43 + rng() * 4, -60 + rng() * 56); stal.rotation.z = Math.PI + (rng() - .5) * .18; root.add(stal); } for (let i = 0; i < 18; i++) { const x = -47 + rng() * 94, z = -58 + rng() * 58, h = 4 + rng() * 7, radius = .32 + rng() * .7; addCrystal(root, mats, x, 48 + rng() * 3, z, h, radius, rng() < .46 ? 'violet' : rng() < .55 ? 'lilac' : 'cyan', rng() * Math.PI, false, rng); } for (const [x, z, h, r, kind] of [[-18, -23, 10, 1.1, 'violet'], [-9, -28, 13, 1.25, 'cyan'], [0, -25, 14, 1.35, 'cyan'], [13, -25, 10.5, 1.05, 'violet'], [-24, -17, 9, .9, 'lilac'], [25, -20, 9.5, 1, 'violet']]) addCrystal(root, mats, x, 44, z, h, r, kind, rng() * Math.PI, true, rng);
+  progress('补齐墙体、残柱、倒塌石碑与冷雾…', 84); for (const side of [-1, 1]) for (let i = 0; i < 9; i++) { const x = side * (29 + rng() * 10), z = -50 + i * 6 + rng() * 2, h = 5 + rng() * 9; addStone(root, mats, 'deep', x, h * .5, z, 3.2 + rng() * 2.8, h, 3.4, rng() * .12, rng() * .06 - .03); addStone(root, mats, 'stone', x - side * 1.65, h * .62, z + .15, .36, h * .52, 2.2, 0, .02); if (rng() < .7) addStone(root, mats, 'edge', x, h + .2, z, 4.1, .45, 3.8, rng() * .1, 0); } for (let i = 0; i < 16; i++) { const side = i % 2 ? -1 : 1, x = side * (13 + rng() * 19), z = -7 + rng() * 33, h = 2 + rng() * 4; addStone(root, mats, 'edge', x, h * .5, z, .8 + rng() * 1.5, h, .45 + rng() * .8, rng() * .8, rng() * .22 - .11); }
+  const mistTexture = softMistTexture(); for (let i = 0; i < 19; i++) { const mist = new THREE.Sprite(new THREE.SpriteMaterial({ map: mistTexture, color: i % 3 ? 0x2d7790 : 0x568cc0, transparent: true, opacity: .035 + rng() * .025, depthWrite: false, blending: THREE.AdditiveBlending })); mist.position.set(-42 + rng() * 84, 1 + rng() * 12, -60 + rng() * 64); mist.scale.set(12 + rng() * 18, 4 + rng() * 9, 1); root.add(mist); }
+  return { blockCount: 760, setView() {}, update(time) { water.waterMaterial.uniforms.time.value = time; portalMaterial.uniforms.time.value = time; cyanLight.intensity = 176 + Math.sin(time * .8) * 11; violetLight.intensity = 94 + Math.sin(time * .47 + 1.1) * 9; } };
 }

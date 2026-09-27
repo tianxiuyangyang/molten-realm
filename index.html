@@ -34,6 +34,6 @@ window.addEventListener('error',e=>window.reportSceneError(e.message||'本地资
 window.addEventListener('unhandledrejection',e=>window.reportSceneError(e.reason?.message||e.reason));
 window.setTimeout(()=>{if(location.protocol==='file:'&&!window.__sceneBooted)window.reportSceneError('请通过本地服务器打开：双击项目里的 start-preview.bat，或访问 http://localhost:4173');},1400);
 </script>
-<script type="module" src="./src/main.js?v=5"></script>
+<script type="module" src="./src/main.js?v=18"></script>
 </body></html>
 
