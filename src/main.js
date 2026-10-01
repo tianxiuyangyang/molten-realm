@@ -6,7 +6,6 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildWorld} from './world.js?v=9';
 import {buildPortalWorld} from './portal-world.js';
-import {buildSciFiWorld} from './scifi-world.js?v=22';
 
 window.__sceneBooted=true;
 
@@ -14,7 +13,6 @@ const $=selector=>document.querySelector(selector);
 const regions={
   citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
   portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145},
-  scifi:{name:'幽蓝遗迹',english:'THE SUNKEN SANCTUM',number:'03',symbol:'✧',intro:'沉入地下水域的古老神殿，蓝紫晶簇照亮失落的传送门。',caption:'潮声掩过石碑，遗迹深处仍有光在呼吸。',label:'THE SUNKEN SANCTUM',origin:[840,0,0],position:[0,15,58],target:[0,8,-18],fov:47,fog:0x071622,density:.0045,exposure:1.12,min:22,max:170},
 };
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,1100);
@@ -38,7 +36,7 @@ function resetCamera(){
   const spec=regions[activeId],origin=new THREE.Vector3(...spec.origin);
   camera.position.copy(origin).add(new THREE.Vector3(...spec.position));controls.target.copy(origin).add(new THREE.Vector3(...spec.target));
   // Fit the full monument on portrait screens instead of cropping its sides.
-  camera.fov=activeId==='scifi'&&camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.15/camera.aspect)):activeId==='scifi'?spec.fov:camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.2/camera.aspect)):spec.fov;
+  camera.fov=camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.2/camera.aspect)):spec.fov;
   camera.updateProjectionMatrix();controls.minDistance=spec.min;controls.maxDistance=spec.max;controls.update();controls.saveState();controls.enableDamping=true;
   active?.setView?.(camera,origin);
 }
@@ -67,7 +65,7 @@ async function switchRegion(id,updateUrl=true){
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     if(!built.has(id)){
       const root=new THREE.Group();root.name='region-'+id;root.position.set(...spec.origin);root.visible=false;scene.add(root);
-      try{let world;if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}else if(id==='portal')world=buildPortalWorld(root,setProgress);else world=await buildSciFiWorld(root,setProgress);built.set(id,{root,...world});}
+      try{let world;if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}else world=buildPortalWorld(root,setProgress);built.set(id,{root,...world});}
       catch(error){scene.remove(root);disposeTree(root);throw error;}
     }
     for(const [key,region] of built)region.root.visible=key===id;
@@ -84,7 +82,7 @@ async function switchRegion(id,updateUrl=true){
 }
 function applyQuality(){
   renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='ultra'?2:quality==='balanced'?1.1:1.65));composer.setPixelRatio(renderer.getPixelRatio());
-  renderer.shadowMap.enabled=quality!=='balanced';bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):activeId==='scifi'?(quality==='ultra'?.33:.24):(quality==='ultra'?.34:.27);bloom.threshold=activeId==='portal'?1.1:activeId==='scifi'?1.08:1.2;bloom.radius=activeId==='portal'?.46:activeId==='scifi'?.43:.38;
+  renderer.shadowMap.enabled=quality!=='balanced';bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):(quality==='ultra'?.34:.27);bloom.threshold=activeId==='portal'?1.1:1.2;bloom.radius=activeId==='portal'?.46:.38;
 }
 function resize(){camera.aspect=innerWidth/innerHeight;renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);if(activeId)resetCamera();else camera.updateProjectionMatrix();$('#hint').innerHTML=innerWidth<700?'单指环绕 <em>·</em> 双指缩放与平移':'拖动环绕 <em>·</em> 滚轮靠近 <em>·</em> 右键平移';}
 function loop(now){

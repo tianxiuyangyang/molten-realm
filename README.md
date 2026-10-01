@@ -1,10 +1,9 @@
-# 熔火王座 · 赤境之门 · 幽蓝遗迹
+# 熔火王座 · 赤境之门
 
-一个使用 Three.js 实时渲染的三场景幻想世界，无需构建工具或后端。
+一个使用 Three.js 实时渲染的双场景幻想世界，无需构建工具或后端。
 
-在线预览：[赤境之门](https://tianxiuyangyang.github.io/molten-realm/?region=portal) · [熔火王座](https://tianxiuyangyang.github.io/molten-realm/?region=citadel) · [幽蓝遗迹](https://tianxiuyangyang.github.io/molten-realm/?region=scifi)。
+在线预览：[赤境之门](https://tianxiuyangyang.github.io/molten-realm/?region=portal) · [熔火王座](https://tianxiuyangyang.github.io/molten-realm/?region=citadel)。
 
-原有「熔火王座」和「赤境之门」继续保留；原先的「星渊回廊」已移除，改为同一个 Three.js 世界中的独立「幽蓝遗迹」区域，原点为 `[840, 0, 0]`。新区域依据 `555.jpg` 搭建地下水域、蓝灰湿石、左右破损拱门、远端阶梯传送门、中央圆形符文祭坛、洞顶岩层和蓝紫六棱晶簇。所有主体均为可旋转观察的实体几何和实时材质，不使用参考图作为场景背景。
 
 入口为 `index.html`。在项目目录启动静态服务：
 
@@ -15,21 +14,20 @@ python -m http.server 4173
 
 也可以直接双击项目根目录的 `start-preview.bat`，它会启动本地服务并打开预览。不要直接双击 `index.html`，因为 Chrome 会阻止 `file:///` 页面加载 Three.js ES modules。
 
-打开 [赤境之门](http://localhost:4173/?region=portal)（默认区域）、[熔火王座](http://localhost:4173/?region=citadel) 或 [幽蓝遗迹](http://localhost:4173/?region=scifi)。通过页面区域选择切换观察位置。
+打开 [赤境之门](http://localhost:4173/?region=portal)（默认区域）、[熔火王座](http://localhost:4173/?region=citadel)。通过页面区域选择切换观察位置。
 
 - 鼠标或触摸旋转、缩放观察；「参考视角」恢复当前区域的构图。
 - 「截图」导出当前渲染画面；「全屏」扩展观察空间。
 - 「精细」「超清」「流畅」三档画质用于平衡分辨率、阴影、辉光与设备性能，默认精细。
 
-`scene-manifest.json` 保留三处区域的分析，并记录坐标、相机、屏幕锚点、材质、灯光及构图假设。画布中的空间由场景几何与实时材质、灯光生成。
+`scene-manifest.json` 保留两处区域的分析，并记录坐标、相机、屏幕锚点、材质、灯光及构图假设。画布中的空间由场景几何与实时材质、灯光生成。
 
 场景始终保持参考观察模式，不添加「进入场景」按钮、Pointer Lock 或第一人称自由飞行。单图无法确定不可见背面、绝对尺寸和完整材质参数；这些部分采用可编辑的合理补全，重点匹配参考视角中的轮廓、透视、遮挡与光色。
 
 实现文件：`src/portal-world.js` 组织新区灯光、天空和粒子；`src/portal-gate.js` 构建门体、符文及动态能量；`src/portal-landscape.js` 构建菌林、石路和熔岩。`src/main.js` 管理区域切换、观察控制和画质。区域在首次访问时构建，已构建区域保留在同一场景中；远处非活动区域隐藏以节省绘制。
 
-「幽蓝遗迹」由 `src/scifi-world.js` 组织：用 ExtrudeGeometry 实体拱门、分层圆形祭坛、断裂石板路、浅水波纹、远端能量门、洞顶岩层、晶簇和守卫雕像复刻 `555.jpg` 的空间层次。相机固定在参考观察位置，冷蓝主光、青色祭坛光和紫色晶簇光共同形成湿润洞窟氛围。
 
-已验证：桌面 1280 × 720 预览、三处区域切换、鼠标环绕和参考复位、精细/流畅画质切换、PNG 实际下载；模块语法与本地资源检查通过，当前浏览器无渲染警告或错误。新区域约 37,845 个精细构件。全屏取决于浏览器窗口是否允许原生 Fullscreen API。
+已验证：桌面 1280 × 720 预览、两处区域切换、鼠标环绕和参考复位、精细/流畅画质切换、PNG 实际下载；模块语法与本地资源检查通过，当前浏览器无渲染警告或错误。全屏取决于浏览器窗口是否允许原生 Fullscreen API。
 
 传送门中心现包含持续形变的像素闪电、沿分枝上行的能量脉冲、旋动能量雾与 320 个上升火花/漂浮粒子。动画由 GPU 运行；`src/portal-lightning.js` 和 `src/portal-particles.js` 分别管理闪电与粒子。门框符文保持固定，中心灯光随能量轻微起伏。
 
