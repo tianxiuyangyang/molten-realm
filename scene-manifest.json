@@ -1,8 +1,9 @@
 {
-  "name": "熔火王座 / Obsidian Citadel",
-  "version": 3,
-  "worldName": "熔火王座 · 赤境之门",
-  "defaultRegion": "portal",
+  "name": "雨夜便利店 / Rainy Konbini Corner",
+  "version": 4,
+  "worldName": "雨夜便利店 · 熔火世界",
+  "defaultRegion": "konbini",
+  "uiFreeRegions": ["konbini"],
   "legacyFieldsRegion": "citadel",
   "seed": 71821,
   "reference": {
@@ -88,9 +89,10 @@
   },
   "world": {
     "coordinates": "右手坐标，Y 向上；区域原点为世界坐标，区域相机和几何使用局部坐标。尺寸为视觉拟合单位，不代表实测米数。",
-    "layout": "原要塞和新增传送门区域保留在同一个 Three.js 场景；新增区域沿世界 X 正方向偏移 420 个单位。区域选择切换观察位置、环境参数和参考图。",
+    "layout": "三个区域保留在同一个 Three.js 场景：熔火王座位于原点，赤境之门沿世界 X 偏移 420，雨夜便利店偏移 840。雨夜便利店为默认区域并完全隐藏页面 HUD；旧区域保留原界面。",
     "navigation": "reference-orbit",
-    "firstPerson": false
+    "firstPerson": false,
+    "pointerLock": false
   },
   "regions": {
     "citadel": {
@@ -410,6 +412,94 @@
         "shadow": "台阶、门框凹槽、菌盖底部与岩块接地处形成明显遮蔽，环境光柔和；发光源周边辉光受控，避免吞没门框轮廓和中央石路。",
         "uncertainty": "单张图片无法确定门后形状、峡谷真实跨度、几何厚度、材质物理参数和绝对尺度；隐藏区域及动态能量过程采用结构合理的可编辑补全。坐标、包围盒和材质范围用于视觉拟合，不属于实测数据。"
       }
+    },
+    "konbini": {
+      "name": "雨夜便利店 / Rainy Konbini Corner",
+      "origin": [
+        840,
+        0,
+        0
+      ],
+      "seed": 93401,
+      "camera": {
+        "position": [
+          9,
+          13,
+          35
+        ],
+        "target": [
+          -1,
+          1.2,
+          0
+        ],
+        "fov": 44,
+        "projection": "perspective",
+        "status": "初始构图；完整正方形底座与最高电线杆同时落在画面内。"
+      },
+      "style": "三渲二微缩模型；MeshToon 分级明暗、深色轮廓壳、程序化招牌与海报、夜景霓虹 Bloom、湿地面平面反射与雨滴涟漪。",
+      "composition": "正方形展台沿街角展开，便利店居中偏左，二层小酒吧在右后方形成高低层次；斑马线与侧巷把视线引向店面。街道留白用于承接霓虹积水倒影，送货车、自行车与撑透明伞的行人补足尺度。",
+      "base": {
+        "shape": "完整正方形",
+        "topY": 0,
+        "footprint": [
+          27.8,
+          27.8
+        ],
+        "plinthHeight": 1.4,
+        "features": [
+          "深色斜面台座",
+          "青色与暖粉边缘灯带",
+          "黄铜角饰",
+          "物理铭牌：雨夜のまちかど / RAINY KONBINI CORNER"
+        ]
+      },
+      "elements": [
+        "便利店发光横招牌与侧向 24H 灯箱",
+        "玻璃橱窗、自动门、雨棚、地垫、ATM/海报贴纸",
+        "自动贩卖机与顶部小猫",
+        "自行车、开启的透明伞、分类垃圾桶、A 字菜单牌",
+        "便利店周边街角、雨夜小巷入口与木质巷名牌",
+        "二层酒吧与粉色霓虹竖招牌、暖帘、纸灯笼、阳台盆栽",
+        "斑马线、停车位、排水沟、井盖、透水砖人行道",
+        "街角护栏、两个路灯、电线杆、变压器、绝缘子与下垂电线",
+        "街道指示牌、地址牌、停止牌、凸面镜",
+        "屋顶空调外机、通风管、天窗、检修口",
+        "送货车、撑透明伞过街的行人、街树、红色邮筒",
+        "便利店内部：货架、冷柜、收银台、吊旗、天花灯带"
+      ],
+      "lighting": "冷蓝月光与低强度半球光提供夜景底色；便利店暖白招牌/店内灯、自动贩卖机青光和酒吧粉色霓虹构成三层局部光源；路面以平面反射、水洼遮罩、接雨涟漪和霓虹光带合成湿地面。",
+      "surfaces": [
+        "湿润沥青",
+        "透水砖",
+        "拉丝金属与烤漆",
+        "玻璃与透明乙烯伞面",
+        "程序化纸张招牌",
+        "湿润泥土与植物",
+        "屋顶碎石"
+      ],
+      "ui": {
+        "hud": false,
+        "labels": false,
+        "controlsOverlay": false,
+        "orbit": true,
+        "zoom": true,
+        "pan": true,
+        "panButton": "right",
+        "touchPan": "two-finger",
+        "pointerLock": false,
+        "firstPerson": false
+      },
+      "implementation": {
+        "viewer": "src/main.js",
+        "world": "src/konbini-world.js",
+        "store": "src/konbini-store.js",
+        "street": "src/konbini-street.js",
+        "props": "src/konbini-props.js",
+        "atmosphere": "src/konbini-atmosphere.js",
+        "materials": "src/konbini-materials.js",
+        "textures": "src/konbini-textures.js"
+      },
+      "uncertainty": "场景为原创虚构街角，不依赖参考照片；街道尺寸、建筑比例与材质参数按微缩模型视觉统一性设计，不作实测还原。"
     }
   }
 }

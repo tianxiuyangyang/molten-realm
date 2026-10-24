@@ -62,7 +62,27 @@ small { color: #8f7965; font-size: 9px; }
 body[data-region=portal] .console { background: linear-gradient(130deg, #20131ee8, #160c13e6); border-color: #a8789940; }
 body[data-region=portal] .crest { color: #c29cdb; border-color: #b088c44a; }
 body[data-region=portal] .live-dot { background: #bb83ed; box-shadow: 0 0 9px #c078ef; }
+body[data-region=konbini] .console { background: linear-gradient(130deg, #0e2027ee, #071117e8); border-color: #7bb9be42; }
+body[data-region=konbini] .crest { color: #9bd5d1; border-color: #86bebb4a; }
+body[data-region=konbini] .live-dot { background: #7bd2cb; box-shadow: 0 0 9px #64bab5; }
 button:focus-visible { outline: 2px solid #d7adef; }
+/* The konbini is a collector's diorama: it is shown with no interface at all. */
+body.clean-view {
+  background: radial-gradient(ellipse at 50% 55%, #10252d 0%, #071118 52%, #04090e 100%);
+}
+body.clean-view .identity,
+body.clean-view .console,
+body.clean-view .region-switch,
+body.clean-view .corner-caption,
+body.clean-view .nav-hint,
+body.clean-view .vignette,
+body.clean-view #loading,
+body.clean-view #toast {
+  display: none !important;
+}
+body.clean-view #viewport { cursor: grab; }
+body.clean-view #viewport:active { cursor: grabbing; }
+body.clean-view canvas { cursor: inherit; }
 @media (max-width: 700px) {
   .identity { left: 18px; top: 18px; }
   .identity h1 { font-size: 21px; letter-spacing: 4px; }

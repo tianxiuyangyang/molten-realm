@@ -2,17 +2,17 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#071622"><title>赤境之门 · 熔火世界</title>
+<meta name="theme-color" content="#07131c"><title>雨夜便利店 · 街角微缩模型</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ff6f26' d='M16 1 28 24 16 31 4 24Z'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="./src/style.css?v=4">
+<link rel="stylesheet" href="./src/style.css?v=5">
 <script type="importmap">{"imports":{"three":"./libs/three.module.js","three/addons/":"./libs/addons/"}}</script>
 </head>
-<body>
+<body class="clean-view">
 <main id="app">
-  <div id="viewport" aria-label="参考观察式幻想世界三维场景"></div>
+  <div id="viewport" aria-label="雨夜便利店街角三维微缩模型，可拖拽旋转与缩放观看"></div>
   <div class="vignette"></div>
-  <header class="identity"><span class="crest" id="scene-symbol">◈</span><div><div class="kicker" id="scene-english">THE CRIMSON THRESHOLD</div><h1><b id="scene-title">赤境之门</b><span id="scene-number">02</span></h1></div></header>
-  <nav class="region-switch" aria-label="场景区域"><button data-region="citadel" aria-pressed="false"><small>01</small> 熔火王座</button><button data-region="portal" aria-pressed="true"><small>02</small> 赤境之门<span class="new-dot"></span></button></nav>
+  <header class="identity"><span class="crest" id="scene-symbol">☂</span><div><div class="kicker" id="scene-english">RAINY KONBINI CORNER</div><h1><b id="scene-title">雨夜便利店</b><span id="scene-number">03</span></h1></div></header>
+  <nav class="region-switch" aria-label="场景区域"><button data-region="citadel" aria-pressed="false"><small>01</small> 熔火王座</button><button data-region="portal" aria-pressed="false"><small>02</small> 赤境之门</button><button data-region="konbini" aria-pressed="true"><small>03</small> 雨夜便利店<span class="new-dot"></span></button></nav>
   <section id="loading"><div class="load-inner"><div class="load-icon">✦</div><div class="kicker">BUILDING THE REALM</div><h2 id="load-title">正在构建三维世界</h2><p id="load-detail">加载本地渲染引擎与材质…</p><div class="progress"><i id="progress"></i></div></div></section>
   <aside class="console" id="console">
     <div class="console-top"><span class="live-dot"></span><span id="status">正在构建场景</span><button id="collapse" aria-label="收起控制台" title="收起控制台">−</button></div>
@@ -34,6 +34,6 @@ window.addEventListener('error',e=>window.reportSceneError(e.message||'本地资
 window.addEventListener('unhandledrejection',e=>window.reportSceneError(e.reason?.message||e.reason));
 window.setTimeout(()=>{if(location.protocol==='file:'&&!window.__sceneBooted)window.reportSceneError('请通过本地服务器打开：双击项目里的 start-preview.bat，或访问 http://localhost:4173');},1400);
 </script>
-<script type="module" src="./src/main.js?v=23"></script>
+<script type="module" src="./src/main.js?v=27"></script>
 </body></html>
 

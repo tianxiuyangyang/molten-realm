@@ -3,16 +3,19 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildWorld} from './world.js?v=9';
 import {buildPortalWorld} from './portal-world.js';
+import {buildKonbiniWorld} from './konbini-world.js?v=2';
 
 window.__sceneBooted=true;
 
 const $=selector=>document.querySelector(selector);
 const regions={
-  citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270},
-  portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145},
+  citadel:{name:'熔火王座',english:'THE OBSIDIAN CITADEL',number:'01',symbol:'♜',intro:'玄武岩长桥连接着熔岩之上的古老王国。',caption:'在灰烬之中，秩序仍然矗立。',label:'THE LAVA ABYSS',origin:[0,0,0],position:[49,76,151],target:[-8,23,0],fov:45,fog:0x4b2424,density:.0035,exposure:1.02,min:28,max:270,background:0x070204},
+  portal:{name:'赤境之门',english:'THE CRIMSON THRESHOLD',number:'02',symbol:'◈',intro:'循着熔岩流光，抵达赤色菌林深处的秘门。',caption:'余烬落下，另一重世界正在苏醒。',label:'THE CRIMSON THRESHOLD',origin:[420,0,0],position:[0,14.45,58],target:[0,11.7,0],fov:49,fog:0x512033,density:.010,exposure:.96,min:17,max:145,background:0x16040b},
+  konbini:{name:'雨夜便利店',english:'RAINY KONBINI CORNER',number:'03',symbol:'☂',intro:'雨落在街角，便利店把整条小巷照成一小块温暖的地方。',caption:'把这座雨夜街角，收进口袋里。',label:'RAINY KONBINI CORNER',origin:[840,0,0],position:[9,13,35],target:[-1,1.2,0],fov:44,fog:0x05111a,density:.0065,exposure:1.04,min:18,max:58,background:0x030a10,clean:true},
 };
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(49,innerWidth/innerHeight,.15,1100);
@@ -25,7 +28,34 @@ const controls=new OrbitControls(camera,renderer.domElement);
 Object.assign(controls,{enableDamping:true,dampingFactor:.055,enablePan:true,panSpeed:.36,rotateSpeed:.38,minPolarAngle:.11,maxPolarAngle:Math.PI*.485});
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.38,.42,1.05);
-composer.addPass(bloom);composer.addPass(new OutputPass());
+const gradePass=new ShaderPass({
+  uniforms:{tDiffuse:{value:null}},
+  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`
+    precision highp float;uniform sampler2D tDiffuse;varying vec2 vUv;
+    void main(){
+      float dof=smoothstep(.22,.5,abs(vUv.y-.62));
+      vec2 blur=vec2(.00135,.00072)*dof;
+      vec3 c=texture2D(tDiffuse,vUv).rgb*.38;
+      c+=texture2D(tDiffuse,vUv+blur).rgb*.145;
+      c+=texture2D(tDiffuse,vUv-blur).rgb*.145;
+      c+=texture2D(tDiffuse,vUv+vec2(blur.x,-blur.y)).rgb*.165;
+      c+=texture2D(tDiffuse,vUv+vec2(-blur.x,blur.y)).rgb*.165;
+      float lum=dot(c,vec3(.2126,.7152,.0722));
+      c=mix(vec3(lum),c,1.22);
+      c*=mix(vec3(.88,.98,1.1),vec3(1.055,1.008,.93),smoothstep(0.03,1.25,lum));
+      c=max(c,0.0);
+      c+=vec3(.0012,.0022,.004)*(1.0-smoothstep(0.0,.13,lum));
+      vec2 q=vUv-.5;
+      float vig=1.0-smoothstep(.3,.83,length(q)*1.22);
+      c*=mix(.8,1.0,vig);
+      float grain=fract(sin(dot(vUv*vec2(131.7,781.3),vec2(12.9898,78.233)))*43758.5453);
+      c+=(grain-.5)*.0026;
+      gl_FragColor=vec4(c,1.0);
+    }`
+});
+gradePass.enabled=false;
+composer.addPass(gradePass);composer.addPass(new OutputPass());
 const built=new Map();
 let activeId,active,quality='high',switching=false,animationId=0,disposed=false,paused=false;
 let last=performance.now(),frames=0,fpsTime=last,elapsed=0,toastTimer;
@@ -36,8 +66,11 @@ function resetCamera(){
   const spec=regions[activeId],origin=new THREE.Vector3(...spec.origin);
   camera.position.copy(origin).add(new THREE.Vector3(...spec.position));controls.target.copy(origin).add(new THREE.Vector3(...spec.target));
   // Fit the full monument on portrait screens instead of cropping its sides.
-  camera.fov=camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*1.2/camera.aspect)):spec.fov;
-  camera.updateProjectionMatrix();controls.minDistance=spec.min;controls.maxDistance=spec.max;controls.update();controls.saveState();controls.enableDamping=true;
+  const fitAspect=1.2;
+  camera.fov=camera.aspect<1.2?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(spec.fov/2))*fitAspect/camera.aspect)):spec.fov;
+  camera.updateProjectionMatrix();controls.minDistance=spec.min;controls.maxDistance=spec.max;
+  controls.enablePan=true;controls.panSpeed=.36;controls.rotateSpeed=spec.clean?.34:.38;controls.zoomSpeed=spec.clean?.72:1;
+  controls.update();controls.saveState();controls.enableDamping=true;
   active?.setView?.(camera,origin);
 }
 function citadelLights(root){
@@ -60,34 +93,50 @@ function citadelLights(root){
 async function switchRegion(id,updateUrl=true){
   if(switching||!regions[id]||id===activeId)return;
   switching=true;for(const button of document.querySelectorAll('[data-region]'))button.disabled=true;
-  const spec=regions[id];$('#load-title').textContent='正在构建'+spec.name;$('#loading').classList.remove('done');$('#status').textContent='正在准备区域';setProgress('准备场景与参考视角…',8);
+  const spec=regions[id];document.body.classList.toggle('clean-view',!!spec.clean);gradePass.enabled=!!spec.clean;
+  renderer.shadowMap.autoUpdate=true;
+  $('#load-title').textContent='正在构建'+spec.name;$('#loading').classList.remove('done');$('#status').textContent='正在准备区域';setProgress('准备场景与参考视角…',8);
   try{
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     if(!built.has(id)){
       const root=new THREE.Group();root.name='region-'+id;root.position.set(...spec.origin);root.visible=false;scene.add(root);
-      try{let world;if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}else world=buildPortalWorld(root,setProgress);built.set(id,{root,...world});}
+      try{
+        let world;
+        if(id==='citadel'){citadelLights(root);world=buildWorld(root,setProgress);}
+        else if(id==='konbini'){world=buildKonbiniWorld(root,setProgress);}
+        else world=buildPortalWorld(root,setProgress);
+        built.set(id,{root,...world});
+      }
       catch(error){scene.remove(root);disposeTree(root);throw error;}
     }
     for(const [key,region] of built)region.root.visible=key===id;
-    activeId=id;active=built.get(id);scene.fog=new THREE.FogExp2(spec.fog,spec.density);renderer.toneMappingExposure=spec.exposure;resetCamera();
+    activeId=id;active=built.get(id);scene.fog=new THREE.FogExp2(spec.fog,spec.density);scene.background=new THREE.Color(spec.background??0x000000);renderer.toneMappingExposure=spec.exposure;resetCamera();
     $('#scene-title').textContent=spec.name;$('#scene-number').textContent=spec.number;$('#scene-english').textContent=spec.english;$('#scene-symbol').textContent=spec.symbol;$('#scene-intro').textContent=spec.intro;
     $('#caption-label').textContent=spec.number+' / '+spec.label;$('#caption-text').textContent=spec.caption;
-    document.title=spec.name+' · 熔火世界';$('#viewport').setAttribute('aria-label',spec.name+'三维参考观察场景');document.body.dataset.region=id;
+    document.title=spec.clean?spec.name+' · 雨夜街角微缩模型':spec.name+' · 熔火世界';$('#viewport').setAttribute('aria-label',spec.clean?'雨夜便利店街角三维微缩模型，可拖拽旋转与缩放观看':spec.name+'三维参考观察场景');document.body.dataset.region=id;
     for(const button of document.querySelectorAll('[data-region]'))button.setAttribute('aria-pressed',String(button.dataset.region===id));
     if(updateUrl){const url=new URL(location.href);url.searchParams.set('region',id);history.replaceState(null,'',url);}
-    applyQuality();active.update(elapsed,renderer.getPixelRatio());composer.render();setProgress('场景已就绪',100);
+    applyQuality();active.resize?.(innerWidth,innerHeight);active.update(elapsed,renderer.getPixelRatio(),renderer,scene,camera);composer.render();setProgress('场景已就绪',100);
     $('#status').textContent=spec.name+' · 参考观察模式';$('#stats').textContent=active.blockCount.toLocaleString()+' 个精细构件';$('#loading').classList.add('done');
   }catch(error){console.error(error);window.reportSceneError(error.message||error);}
   finally{switching=false;for(const button of document.querySelectorAll('[data-region]'))button.disabled=false;}
 }
 function applyQuality(){
   renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='ultra'?2:quality==='balanced'?1.1:1.65));composer.setPixelRatio(renderer.getPixelRatio());
-  renderer.shadowMap.enabled=quality!=='balanced';bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):(quality==='ultra'?.34:.27);bloom.threshold=activeId==='portal'?1.1:1.2;bloom.radius=activeId==='portal'?.46:.38;
+  renderer.shadowMap.enabled=quality!=='balanced';
+  if(activeId==='konbini'){
+    bloom.strength=quality==='ultra'?.46:quality==='balanced'?.28:.35;
+    bloom.threshold=.9;bloom.radius=.62;
+  }else{
+    bloom.strength=activeId==='portal'?(quality==='ultra'?.46:.36):(quality==='ultra'?.34:.27);
+    bloom.threshold=activeId==='portal'?1.1:1.2;bloom.radius=activeId==='portal'?.46:.38;
+  }
+  active?.setQuality?.(quality);
 }
-function resize(){camera.aspect=innerWidth/innerHeight;renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);if(activeId)resetCamera();else camera.updateProjectionMatrix();$('#hint').innerHTML=innerWidth<700?'单指环绕 <em>·</em> 双指缩放与平移':'拖动环绕 <em>·</em> 滚轮靠近 <em>·</em> 右键平移';}
+function resize(){camera.aspect=innerWidth/innerHeight;renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);active?.resize?.(innerWidth,innerHeight);if(activeId)resetCamera();else camera.updateProjectionMatrix();$('#hint').innerHTML=innerWidth<700?'单指环绕 <em>·</em> 双指缩放与平移':'拖动环绕 <em>·</em> 滚轮靠近 <em>·</em> 右键平移';}
 function loop(now){
   if(disposed)return;animationId=requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;if(paused||!active||switching)return;
-  elapsed+=dt;controls.update();active.update(elapsed,renderer.getPixelRatio());if(quality==='balanced')renderer.render(scene,camera);else composer.render(dt);
+  elapsed+=dt;controls.update();active.update(elapsed,renderer.getPixelRatio(),renderer,scene,camera);if(quality==='balanced')renderer.render(scene,camera);else composer.render(dt);
   frames++;if(now-fpsTime>900){$('#fps').textContent=Math.round(frames*1000/(now-fpsTime))+' FPS';frames=0;fpsTime=now;}
 }
 for(const button of document.querySelectorAll('[data-region]'))button.onclick=()=>switchRegion(button.dataset.region);
@@ -111,4 +160,4 @@ function disposeTree(root){
 }
 addEventListener('pagehide',event=>{if(event.persisted)return;disposed=true;cancelAnimationFrame(animationId);clearTimeout(toastTimer);controls.dispose();disposeTree(scene);for(const pass of composer.passes)pass.dispose?.();composer.dispose();renderer.dispose();});
 if(innerWidth<700){$('#hint').innerHTML='单指环绕 <em>·</em> 双指缩放与平移';$('#console').classList.add('collapsed');$('#collapse').textContent='+';$('#collapse').setAttribute('aria-label','展开控制台');}
-const requested=new URLSearchParams(location.search).get('region');switchRegion(regions[requested]?requested:'portal');animationId=requestAnimationFrame(loop);
+const requested=new URLSearchParams(location.search).get('region');switchRegion(regions[requested]?requested:'konbini');animationId=requestAnimationFrame(loop);
