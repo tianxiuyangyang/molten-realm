@@ -1,13 +1,13 @@
 import * as THREE from 'three';
-import {toon,basic,standard,physical} from './konbini-utils.js';
+import {toon,basic,standard,physical} from './konbini-utils.js?v=4';
 import {
   makeAsphaltTextures,makePavingTexture,makeGravelTexture,makeStoreSignTexture,makeBladeSignTexture,
   makeVendingTexture,makeWindowDecalTexture,makeDoormatTexture,makeMenuBoardTexture,makePosterBoardTexture,
   makePosterTexture,makeBinLabelTexture,makeShutterTexture,makeBarSignTexture,makeBarCurtainTexture,
   makeAframeTexture,makeRoadMarkTexture,makeStreetSignTexture,makeBasePlaqueTexture,makeAwningStripeTexture,
   makeBadgeTexture,makeSaleStickerTexture,makeInteriorHangingTexture,makeFridgePanelTexture,makeGlassSheenTexture,
-  makeReflectionStreakTexture
-} from './konbini-textures.js';
+  makeReflectionStreakTexture,makeSnowDustTexture
+} from './konbini-textures.js?v=4';
 
 export function createKonbiniMaterials(){
   const asphaltTextures=makeAsphaltTextures();
@@ -42,6 +42,7 @@ export function createKonbiniMaterials(){
   const fridgePanel=makeFridgePanelTexture();
   const glassSheen=makeGlassSheenTexture();
   const reflectionStreak=makeReflectionStreakTexture();
+  const snowDust=makeSnowDustTexture();
 
   const materials={
     base:standard(0x0d171e,{roughness:.54,metalness:.32}),
@@ -103,6 +104,14 @@ export function createKonbiniMaterials(){
     reflectionStreak:new THREE.MeshBasicMaterial({
       map:reflectionStreak,transparent:true,depthWrite:false,opacity:.5,
       blending:THREE.AdditiveBlending,color:0xffffff
+    }),
+    snowCap:new THREE.MeshStandardMaterial({
+      map:snowDust,color:0xe9f4f7,transparent:true,opacity:0,roughness:.9,metalness:0,
+      side:THREE.DoubleSide,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2
+    }),
+    snowSolid:new THREE.MeshStandardMaterial({
+      color:0xe5f1f4,transparent:true,opacity:0,roughness:.88,metalness:0,
+      side:THREE.DoubleSide,depthWrite:false
     }),
     frosted:new THREE.MeshStandardMaterial({
       color:0xb7d5d5,roughness:.6,metalness:.05,transparent:true,opacity:.48,
@@ -172,5 +181,5 @@ export function createKonbiniMaterials(){
   });
   materials.productPalette=productPalette;
 
-  return {materials,textures:{asphaltTextures,paving,gravel,storeSign,bladeSign,vending,windowDecal,doormat,menu,posterBoard,posters,binLabel,shutter,barSign,barCurtain,aframe,basePlaque,awningStripe,roadTomare,roadP,stopSign,parkingSign,streetSign,addressSign,fridgePanel,glassSheen,reflectionStreak}};
+  return {materials,textures:{asphaltTextures,paving,gravel,storeSign,bladeSign,vending,windowDecal,doormat,menu,posterBoard,posters,binLabel,shutter,barSign,barCurtain,aframe,basePlaque,awningStripe,roadTomare,roadP,stopSign,parkingSign,streetSign,addressSign,fridgePanel,glassSheen,reflectionStreak,snowDust}};
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {PI,basic,makeRng,glowTexture} from './konbini-utils.js';
+import {PI,basic,makeRng,glowTexture} from './konbini-utils.js?v=4';
 
 const fbmGLSL=`
 float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -11,7 +11,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*vnoise(p);p=p*2.03+v
 function buildSky(parent,seed=7193){
   const material=new THREE.ShaderMaterial({
     side:THREE.BackSide,depthWrite:false,
-    uniforms:{uTime:{value:0}},
+    uniforms:{
+      uTime:{value:0},
+      uBrightness:{value:1},
+      uTint:{value:new THREE.Color(0x000000)},
+      uCloudSpeed:{value:1},
+      uFlash:{value:0}
+    },
     vertexShader:`
       varying vec3 vDir;
       void main(){
@@ -22,6 +28,10 @@ function buildSky(parent,seed=7193){
       precision highp float;
       varying vec3 vDir;
       uniform float uTime;
+      uniform float uBrightness;
+      uniform vec3 uTint;
+      uniform float uCloudSpeed;
+      uniform float uFlash;
       ${fbmGLSL}
       void main(){
         vec3 d=normalize(vDir);
@@ -34,7 +44,7 @@ function buildSky(parent,seed=7193){
         // Cloud decks, lit faintly from the city.
         vec2 p=normalize(d.xz+vec2(0.0001))*1.0;
         float horizon=1.0-clamp(abs(d.y)*2.6,0.0,1.0);
-        vec2 cloudUv=vec2(atan(d.z,d.x)*1.1,(d.y+0.16)*2.4)+vec2(uTime*0.004,0.0);
+        vec2 cloudUv=vec2(atan(d.z,d.x)*1.1,(d.y+0.16)*2.4)+vec2(uTime*0.004*uCloudSpeed,0.0);
         float clouds=fbm(cloudUv*2.3+fbm(cloudUv*1.1)*0.6);
         float cloudMask=smoothstep(0.41,0.73,clouds)*smoothstep(0.02,0.35,h)*smoothstep(1.02,0.55,h);
         col=mix(col,vec3(0.031,0.052,0.063),cloudMask*0.82);
@@ -47,6 +57,8 @@ function buildSky(parent,seed=7193){
         col=mix(col,vec3(0.042,0.024,0.030),smoothstep(0.60,0.9,1.0-h)*0.42);
         // A very faint wet grain keeps the gradient from looking like a flat CSS panel.
         col+=vec3(vnoise(d.xz*280.0+d.y*31.0))*0.004;
+        col=col*max(uBrightness,0.0)+uTint;
+        col+=vec3(.38,.48,.58)*uFlash;
         gl_FragColor=vec4(col,1.0);
       }`
   });
@@ -57,35 +69,36 @@ function buildSky(parent,seed=7193){
   return {mesh:sky,material};
 }
 
-function buildRain(parent,seed=4412){
+function buildRain(parent,{seed=4412,count=680,opacity=.17,color=0x86acbf,lengthMin=.24,lengthMax=.79,speedMin=10,speedMax=22}={}){
   const rng=makeRng(seed);
-  const count=680;
   const positions=new Float32Array(count*6);
   const data=[];
   for(let i=0;i<count;i++){
     const x=(rng()-.5)*33;
     const y=.6+rng()*18;
     const z=(rng()-.5)*33;
-    const length=.24+rng()*.55;
-    const speed=10+rng()*12;
+    const length=lengthMin+rng()*(lengthMax-lengthMin);
+    const speed=speedMin+rng()*(speedMax-speedMin);
     data.push({x,y,z,length,speed,windX:.45+rng()*.4,windZ:.1+rng()*.22});
   }
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   const material=new THREE.LineBasicMaterial({
-    color:0x86acbf,transparent:true,opacity:.17,depthWrite:false,fog:true
+    color,transparent:true,opacity,depthWrite:false,fog:true
   });
   const lines=new THREE.LineSegments(geometry,material);
   lines.name='rain';
   lines.frustumCulled=false;
   lines.renderOrder=9;
+  lines.visible=opacity>0;
   parent.add(lines);
-  function update(dt){
+  function update(dt,{windScale=1,speedScale=1,lengthScale=1}={}){
+    const slant=.035*(.45+windScale*.55);
     for(let i=0;i<count;i++){
       const drop=data[i];
-      drop.y-=drop.speed*dt;
-      drop.x+=drop.windX*dt;
-      drop.z+=drop.windZ*dt;
+      drop.y-=drop.speed*speedScale*dt;
+      drop.x+=drop.windX*windScale*dt;
+      drop.z+=drop.windZ*windScale*dt;
       if(drop.y<.06){
         drop.y=14+rng()*5;
         drop.x=(rng()-.5)*33;
@@ -97,13 +110,96 @@ function buildRain(parent,seed=4412){
       positions[idx]=drop.x;
       positions[idx+1]=drop.y;
       positions[idx+2]=drop.z;
-      positions[idx+3]=drop.x+drop.windX*.035;
-      positions[idx+4]=drop.y+drop.length;
-      positions[idx+5]=drop.z+drop.windZ*.035;
+      positions[idx+3]=drop.x+drop.windX*slant*windScale;
+      positions[idx+4]=drop.y+drop.length*lengthScale;
+      positions[idx+5]=drop.z+drop.windZ*slant*windScale;
     }
     geometry.attributes.position.needsUpdate=true;
   }
-  return {lines,material,update};
+  return {lines,material,update,baseOpacity:opacity};
+}
+
+function buildSnow(parent,seed=7191){
+  const rng=makeRng(seed);
+  const count=1200;
+  const positions=new Float32Array(count*3);
+  const sizes=new Float32Array(count);
+  const seeds=new Float32Array(count);
+  const data=[];
+  for(let i=0;i<count;i++){
+    const x=(rng()-.5)*34;
+    const y=.5+rng()*18;
+    const z=(rng()-.5)*34;
+    const speed=.45+rng()*1.0;
+    const size=.55+rng()*1.5;
+    data.push({x,y,z,speed,size,phase:rng()*PI*2,sway:.35+rng()*.8});
+    sizes[i]=size;
+    seeds[i]=rng();
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  geometry.setAttribute('aSize',new THREE.BufferAttribute(sizes,1));
+  geometry.setAttribute('aSeed',new THREE.BufferAttribute(seeds,1));
+  const material=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,
+    uniforms:{uTime:{value:0},uOpacity:{value:0}},
+    vertexShader:`
+      attribute float aSize;
+      attribute float aSeed;
+      varying float vAlpha;
+      varying float vSeed;
+      uniform float uTime;
+      void main(){
+        vSeed=aSeed;
+        vec4 mvPosition=modelViewMatrix*vec4(position,1.0);
+        float twinkle=.72+.28*sin(uTime*1.6+aSeed*21.0);
+        vAlpha=twinkle;
+        gl_PointSize=clamp(aSize*(68.0/max(1.0,-mvPosition.z)),1.0,8.0);
+        gl_Position=projectionMatrix*mvPosition;
+      }`,
+    fragmentShader:`
+      precision highp float;
+      varying float vAlpha;
+      varying float vSeed;
+      uniform float uOpacity;
+      void main(){
+        vec2 p=gl_PointCoord-.5;
+        float d=length(p);
+        float core=smoothstep(.5,.15,d);
+        float angle=atan(p.y,p.x);
+        float arms=pow(abs(cos(angle*3.0+vSeed*2.4)),14.0)*smoothstep(.5,.22,d)*.18;
+        float alpha=(core*.72+arms)*vAlpha*uOpacity;
+        if(d>.5||alpha<.012)discard;
+        gl_FragColor=vec4(vec3(.84,.92,1.0),alpha);
+      }`
+  });
+  const points=new THREE.Points(geometry,material);
+  points.name='snow';
+  points.frustumCulled=false;
+  points.renderOrder=10;
+  points.visible=false;
+  parent.add(points);
+  function update(dt,elapsed,wind=1){
+    for(let i=0;i<count;i++){
+      const flake=data[i];
+      flake.y-=flake.speed*dt;
+      flake.x+=(.45*wind+Math.sin(elapsed*1.1+flake.phase)*.22)*dt;
+      flake.z+=(.12*wind+Math.cos(elapsed*.7+flake.phase)*.13)*dt;
+      if(flake.y<.1){
+        flake.y=15+rng()*4;
+        flake.x=(rng()-.5)*34;
+        flake.z=(rng()-.5)*34;
+      }
+      if(flake.x>17.5)flake.x=-17.5; else if(flake.x<-17.5)flake.x=17.5;
+      if(flake.z>17.5)flake.z=-17.5; else if(flake.z<-17.5)flake.z=17.5;
+      positions[i*3]=flake.x;
+      positions[i*3+1]=flake.y;
+      positions[i*3+2]=flake.z;
+    }
+    geometry.attributes.position.needsUpdate=true;
+    material.uniforms.uTime.value=elapsed;
+  }
+  return {points,material,update};
 }
 
 function buildSplashes(parent,seed=901){
@@ -133,7 +229,7 @@ function buildSplashes(parent,seed=901){
   geometry.setAttribute('aSize',new THREE.BufferAttribute(sizes,1));
   const material=new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-    uniforms:{uTime:{value:0}},
+    uniforms:{uTime:{value:0},uOpacity:{value:1}},
     vertexShader:`
       attribute float aSeed;
       attribute float aSize;
@@ -153,13 +249,14 @@ function buildSplashes(parent,seed=901){
       precision highp float;
       varying float vCycle;
       varying float vSeed;
+      uniform float uOpacity;
       void main(){
         vec2 p=gl_PointCoord-.5;
         float d=length(p);
         float radius=.34;
         float ring=1.0-smoothstep(.012,.042,abs(d-radius));
         float dash=.7+.3*sin(atan(p.y,p.x)*9.0+vSeed*20.0);
-        float alpha=ring*dash*pow(1.0-vCycle,1.8)*.32;
+        float alpha=ring*dash*pow(1.0-vCycle,1.8)*.32*uOpacity;
         if(d>.5||alpha<.01)discard;
         gl_FragColor=vec4(vec3(.62,.86,.92),alpha);
       }`
@@ -170,6 +267,64 @@ function buildSplashes(parent,seed=901){
   points.frustumCulled=false;
   parent.add(points);
   return {points,material};
+}
+
+function buildStormDebris(parent){
+  const rng=makeRng(6654);
+  const count=34;
+  const geometry=new THREE.PlaneGeometry(.17,.09);
+  const material=new THREE.MeshBasicMaterial({
+    color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false
+  });
+  const mesh=new THREE.InstancedMesh(geometry,material,count);
+  mesh.name='storm-debris';
+  mesh.frustumCulled=false;
+  mesh.visible=false;
+  const colors=[0x7d8c5a,0xb49a68,0xd5cdb7,0x9e6b55,0x6f8468];
+  const data=[];
+  const dummy=new THREE.Object3D();
+  const color=new THREE.Color();
+  for(let i=0;i<count;i++){
+    data.push({
+      x:(rng()-.5)*34,y:.25+rng()*5.3,z:(rng()-.5)*30,
+      speed:4+rng()*7,phase:rng()*PI*2,spin:.8+rng()*2.3,
+      tilt:rng()*PI,size:.55+rng()*1.15
+    });
+    dummy.position.set(data[i].x,data[i].y,data[i].z);
+    dummy.rotation.set(data[i].tilt,data[i].phase,0);
+    dummy.scale.setScalar(data[i].size);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i,dummy.matrix);
+    mesh.setColorAt(i,color.setHex(colors[i%colors.length]));
+  }
+  mesh.instanceMatrix.needsUpdate=true;
+  if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+  parent.add(mesh);
+  function update(dt,elapsed,amount){
+    const visible=amount>.01;
+    mesh.visible=visible;
+    material.opacity=.8*amount;
+    if(!visible)return;
+    for(let i=0;i<count;i++){
+      const item=data[i];
+      item.x+=(item.speed*amount+2.5)*dt;
+      item.y+=Math.sin(elapsed*2.1+item.phase)*.45*dt;
+      item.z+=Math.cos(elapsed*.9+item.phase)*.7*dt;
+      if(item.x>17.5){
+        item.x=-17.5;
+        item.y=.25+rng()*5.3;
+        item.z=(rng()-.5)*30;
+      }
+      if(item.z>16)item.z=-16; else if(item.z<-16)item.z=16;
+      dummy.position.set(item.x,item.y,item.z);
+      dummy.rotation.set(item.tilt,item.phase+elapsed*item.spin,item.spin);
+      dummy.scale.setScalar(item.size);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i,dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate=true;
+  }
+  return {mesh,material,update};
 }
 
 function makeWetOverlay(mats,textureTarget){
@@ -360,6 +515,12 @@ export function buildAtmosphere(parent,mats,{renderer,camera,planeY=.08}={}){
   const group=new THREE.Group();group.name='konbini-atmosphere';parent.add(group);
   const sky=buildSky(group);
   const rain=buildRain(group);
+  const stormRain=buildRain(group,{
+    seed:8142,count:840,opacity:0,color:0xaac7d9,
+    lengthMin:.5,lengthMax:1.18,speedMin:16,speedMax:28
+  });
+  const snow=buildSnow(group);
+  const stormDebris=buildStormDebris(group);
   const splashes=buildSplashes(group);
   const reflection=new PlanarReflection(group,renderer,camera,planeY);
   const reflectionGroupUpdated=reflection.overlay;
@@ -420,20 +581,67 @@ export function buildAtmosphere(parent,mats,{renderer,camera,planeY=.08}={}){
   mistWarm.rotation.x=-PI/2;mistWarm.position.set(5,-1.66,3);mistWarm.renderOrder=0;
   group.add(mistWarm);
 
+  const weatherPresets={
+    rain:{rain:.17,storm:0,snow:0,splash:1,wet:.86,wind:1,rainSpeed:1,rainLength:1,snowWind:.45,splashSpeed:1,debris:0},
+    clear:{rain:0,storm:0,snow:0,splash:0,wet:.48,wind:.55,rainSpeed:1,rainLength:1,snowWind:.3,splashSpeed:1,debris:0},
+    snow:{rain:0,storm:0,snow:.82,splash:0,wet:.22,wind:1,rainSpeed:1,rainLength:1,snowWind:.7,splashSpeed:1,debris:0},
+    typhoon:{rain:.18,storm:.3,snow:0,splash:1.35,wet:.98,wind:3.5,rainSpeed:1.55,rainLength:1.35,snowWind:1.2,splashSpeed:1.9,debris:1}
+  };
+  let weather='rain';
+  let weatherState={...weatherPresets.rain};
+  let splashClock=0;
+
+  function setWeather(next,instant=false){
+    if(!weatherPresets[next])return;
+    weather=next;
+    if(instant){
+      weatherState={...weatherPresets[next]};
+      applyWeatherState();
+    }
+  }
+  function applyWeatherState(){
+    rain.material.opacity=weatherState.rain;
+    rain.lines.visible=weatherState.rain>.002;
+    stormRain.material.opacity=weatherState.storm;
+    stormRain.lines.visible=weatherState.storm>.002;
+    snow.material.uniforms.uOpacity.value=weatherState.snow;
+    snow.points.visible=weatherState.snow>.002;
+    splashes.material.uniforms.uOpacity.value=weatherState.splash;
+    splashes.points.visible=weatherState.splash>.002;
+    reflection.overlay.material.uniforms.uOpacity.value=weatherState.wet;
+  }
+  function setSkyMood(brightness,tint,cloudSpeed=1){
+    sky.material.uniforms.uBrightness.value=brightness;
+    sky.material.uniforms.uTint.value.copy(tint);
+    sky.material.uniforms.uCloudSpeed.value=cloudSpeed;
+  }
+  function setFlash(value){
+    sky.material.uniforms.uFlash.value=value;
+  }
+  applyWeatherState();
+
   let elapsed=0;
   function update(time,dt,rendererArg,scene,cameraArg){
     elapsed+=dt;
     sky.material.uniforms.uTime.value=elapsed;
-    rain.update(dt);
-    splashes.material.uniforms.uTime.value=elapsed;
+    const target=weatherPresets[weather];
+    const ease=1-Math.exp(-dt*2.6);
+    for(const key of Object.keys(weatherState))weatherState[key]+=(target[key]-weatherState[key])*ease;
+    applyWeatherState();
+    if(rain.lines.visible)rain.update(dt,{windScale:weatherState.wind,speedScale:weatherState.rainSpeed,lengthScale:weatherState.rainLength});
+    if(stormRain.lines.visible)stormRain.update(dt,{windScale:weatherState.wind*1.15,speedScale:weatherState.rainSpeed*1.15,lengthScale:weatherState.rainLength*1.1});
+    if(snow.points.visible)snow.update(dt,elapsed,weatherState.snowWind);
+    stormDebris.update(dt,elapsed,weatherState.debris);
+    splashClock+=dt*weatherState.splashSpeed;
+    splashes.material.uniforms.uTime.value=splashClock;
     if(rendererArg&&scene&&cameraArg){
       reflection.update(elapsed,scene,cameraArg,rendererArg);
     }
   }
   function resize(width,height){reflection.setSize(width,height);}
   return {
-    group,sky,rain,splashes,reflection,overlay:reflectionGroupUpdated,
-    update,resize,
+    group,sky,rain,stormRain,snow,stormDebris,splashes,reflection,overlay:reflectionGroupUpdated,
+    update,resize,setWeather,setSkyMood,setFlash,
     setQuality(quality){reflection.target.setSize(quality==='ultra'?1024:720,quality==='ultra'?576:405);}
   };
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   PI,addBox,addCylinder,addPlane,addRounded,toon,basic,standard,makeRng,addGlow
-} from './konbini-utils.js';
+} from './konbini-utils.js?v=4';
 
 const X0=-8.8;
 const X1=2.8;

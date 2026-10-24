@@ -7,7 +7,7 @@ import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildWorld} from './world.js?v=9';
 import {buildPortalWorld} from './portal-world.js';
-import {buildKonbiniWorld} from './konbini-world.js?v=2';
+import {buildKonbiniWorld} from './konbini-world.js?v=4';
 
 window.__sceneBooted=true;
 
@@ -111,6 +111,7 @@ async function switchRegion(id,updateUrl=true){
     }
     for(const [key,region] of built)region.root.visible=key===id;
     activeId=id;active=built.get(id);scene.fog=new THREE.FogExp2(spec.fog,spec.density);scene.background=new THREE.Color(spec.background??0x000000);renderer.toneMappingExposure=spec.exposure;resetCamera();
+    if(id==='konbini')active.setWeather?.(currentWeather);
     $('#scene-title').textContent=spec.name;$('#scene-number').textContent=spec.number;$('#scene-english').textContent=spec.english;$('#scene-symbol').textContent=spec.symbol;$('#scene-intro').textContent=spec.intro;
     $('#caption-label').textContent=spec.number+' / '+spec.label;$('#caption-text').textContent=spec.caption;
     document.title=spec.clean?spec.name+' · 雨夜街角微缩模型':spec.name+' · 熔火世界';$('#viewport').setAttribute('aria-label',spec.clean?'雨夜便利店街角三维微缩模型，可拖拽旋转与缩放观看':spec.name+'三维参考观察场景');document.body.dataset.region=id;
@@ -139,6 +140,21 @@ function loop(now){
   elapsed+=dt;controls.update();active.update(elapsed,renderer.getPixelRatio(),renderer,scene,camera);if(quality==='balanced')renderer.render(scene,camera);else composer.render(dt);
   frames++;if(now-fpsTime>900){$('#fps').textContent=Math.round(frames*1000/(now-fpsTime))+' FPS';frames=0;fpsTime=now;}
 }
+let currentWeather='rain';
+const weatherConsole=document.querySelector('#weather-console');
+const weatherButtons=[...document.querySelectorAll('[data-weather]')];
+function syncWeatherUI(){
+  if(weatherConsole)weatherConsole.dataset.active=currentWeather;
+  for(const button of weatherButtons)button.setAttribute('aria-pressed',String(button.dataset.weather===currentWeather));
+}
+function setWeatherMode(mode){
+  if(!['rain','clear','snow','typhoon'].includes(mode))return;
+  currentWeather=mode;
+  syncWeatherUI();
+  if(activeId==='konbini')active?.setWeather?.(mode);
+}
+for(const button of weatherButtons)button.onclick=()=>setWeatherMode(button.dataset.weather);
+syncWeatherUI();
 for(const button of document.querySelectorAll('[data-region]'))button.onclick=()=>switchRegion(button.dataset.region);
 $('#reset').onclick=resetCamera;
 $('#collapse').onclick=()=>{const collapsed=$('#console').classList.toggle('collapsed');$('#collapse').textContent=collapsed?'+':'−';$('#collapse').setAttribute('aria-label',collapsed?'展开控制台':'收起控制台');};

@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07131c"><title>雨夜便利店 · 街角微缩模型</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ff6f26' d='M16 1 28 24 16 31 4 24Z'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="./src/style.css?v=5">
+<link rel="stylesheet" href="./src/style.css?v=7">
 <script type="importmap">{"imports":{"three":"./libs/three.module.js","three/addons/":"./libs/addons/"}}</script>
 </head>
 <body class="clean-view">
@@ -13,6 +13,15 @@
   <div class="vignette"></div>
   <header class="identity"><span class="crest" id="scene-symbol">☂</span><div><div class="kicker" id="scene-english">RAINY KONBINI CORNER</div><h1><b id="scene-title">雨夜便利店</b><span id="scene-number">03</span></h1></div></header>
   <nav class="region-switch" aria-label="场景区域"><button data-region="citadel" aria-pressed="false"><small>01</small> 熔火王座</button><button data-region="portal" aria-pressed="false"><small>02</small> 赤境之门</button><button data-region="konbini" aria-pressed="true"><small>03</small> 雨夜便利店<span class="new-dot"></span></button></nav>
+  <aside class="weather-console" id="weather-console" data-active="rain" aria-label="天气控制台">
+    <div class="weather-console-head"><span class="weather-signal" aria-hidden="true"></span><span>天气</span><small>WEATHER</small></div>
+    <div class="weather-options" role="group" aria-label="选择天气">
+      <button type="button" data-weather="rain" aria-label="下雨" aria-pressed="true"><b>下雨</b><small>RAIN</small></button>
+      <button type="button" data-weather="clear" aria-label="雨停" aria-pressed="false"><b>雨停</b><small>CLEAR</small></button>
+      <button type="button" data-weather="snow" aria-label="下雪" aria-pressed="false"><b>下雪</b><small>SNOW</small></button>
+      <button type="button" data-weather="typhoon" aria-label="台风" aria-pressed="false"><b>台风</b><small>STORM</small></button>
+    </div>
+  </aside>
   <section id="loading"><div class="load-inner"><div class="load-icon">✦</div><div class="kicker">BUILDING THE REALM</div><h2 id="load-title">正在构建三维世界</h2><p id="load-detail">加载本地渲染引擎与材质…</p><div class="progress"><i id="progress"></i></div></div></section>
   <aside class="console" id="console">
     <div class="console-top"><span class="live-dot"></span><span id="status">正在构建场景</span><button id="collapse" aria-label="收起控制台" title="收起控制台">−</button></div>
@@ -34,6 +43,6 @@ window.addEventListener('error',e=>window.reportSceneError(e.message||'本地资
 window.addEventListener('unhandledrejection',e=>window.reportSceneError(e.reason?.message||e.reason));
 window.setTimeout(()=>{if(location.protocol==='file:'&&!window.__sceneBooted)window.reportSceneError('请通过本地服务器打开：双击项目里的 start-preview.bat，或访问 http://localhost:4173');},1400);
 </script>
-<script type="module" src="./src/main.js?v=27"></script>
+<script type="module" src="./src/main.js?v=29"></script>
 </body></html>
 

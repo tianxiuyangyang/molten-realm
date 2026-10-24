@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {makeRng,roundRect,textureCanvas,canvasTexture} from './konbini-utils.js';
+import {makeRng,roundRect,textureCanvas,canvasTexture} from './konbini-utils.js?v=4';
 
 const JP='"Yu Gothic UI","Yu Gothic","Hiragino Kaku Gothic ProN","Meiryo","Noto Sans JP",sans-serif';
 const SERIF='"Yu Mincho","YuMincho","Hiragino Mincho ProN","Noto Serif JP",serif';
@@ -787,6 +787,35 @@ export function makeFridgePanelTexture(){
     const x=(i*73)%512,y=80+(i*137)%860;
     ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(x,y,35,90);
   }
+  return canvasTexture(canvas);
+}
+
+export function makeSnowDustTexture(){
+  const {canvas,ctx}=textureCanvas(512,512);
+  const rng=makeRng(4701);
+  ctx.clearRect(0,0,512,512);
+  for(let i=0;i<64;i++){
+    const x=rng()*512,y=rng()*512;
+    const r=18+rng()*92;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    const a=.22+rng()*.58;
+    g.addColorStop(0,`rgba(255,255,255,${a})`);
+    g.addColorStop(.62,`rgba(252,255,255,${a*.62})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
+  }
+  for(let i=0;i<240;i++){
+    ctx.fillStyle=`rgba(255,255,255,${.2+rng()*.7})`;
+    const s=.6+rng()*2.4;
+    ctx.beginPath();ctx.arc(rng()*512,rng()*512,s,0,Math.PI*2);ctx.fill();
+  }
+  const fade=ctx.createRadialGradient(256,256,30,256,256,300);
+  fade.addColorStop(0,'rgba(0,0,0,0)');
+  fade.addColorStop(.72,'rgba(0,0,0,.06)');
+  fade.addColorStop(1,'rgba(0,0,0,.9)');
+  ctx.globalCompositeOperation='destination-out';
+  ctx.fillStyle=fade;ctx.fillRect(0,0,512,512);
+  ctx.globalCompositeOperation='source-over';
   return canvasTexture(canvas);
 }
 

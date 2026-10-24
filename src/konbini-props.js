@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   PI,addBox,addRounded,addCylinder,addPlane,addGroundPlane,addGlow,basic,standard,toon,glowTexture,
   textureCanvas,canvasTexture,roundRect
-} from './konbini-utils.js';
+} from './konbini-utils.js?v=4';
 
 function rodBetween(parent,a,b,radius,material,{segments=8,outline=0}={}){
   const start=new THREE.Vector3(...a);

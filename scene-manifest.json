@@ -3,7 +3,7 @@
   "version": 4,
   "worldName": "雨夜便利店 · 熔火世界",
   "defaultRegion": "konbini",
-  "uiFreeRegions": ["konbini"],
+  "overlayUIRegions": ["konbini"],
   "legacyFieldsRegion": "citadel",
   "seed": 71821,
   "reference": {
@@ -89,7 +89,7 @@
   },
   "world": {
     "coordinates": "右手坐标，Y 向上；区域原点为世界坐标，区域相机和几何使用局部坐标。尺寸为视觉拟合单位，不代表实测米数。",
-    "layout": "三个区域保留在同一个 Three.js 场景：熔火王座位于原点，赤境之门沿世界 X 偏移 420，雨夜便利店偏移 840。雨夜便利店为默认区域并完全隐藏页面 HUD；旧区域保留原界面。",
+    "layout": "三个区域保留在同一个 Three.js 场景：熔火王座位于原点，赤境之门沿世界 X 偏移 420，雨夜便利店偏移 840。雨夜便利店为默认区域，只显示右侧天气控制台并隐藏旧场景 HUD；旧区域保留原界面。",
     "navigation": "reference-orbit",
     "firstPerson": false,
     "pointerLock": false
@@ -477,10 +477,33 @@
         "湿润泥土与植物",
         "屋顶碎石"
       ],
+      "weather": {
+        "control": "right-side compact console",
+        "default": "rain",
+        "modes": [
+          "rain",
+          "clear",
+          "snow",
+          "typhoon"
+        ],
+        "rain": "默认；雨丝、雨滴涟漪、霓虹积水与湿地面平面反射",
+        "clear": "关闭降雨，降水与涟漪淡出，湿地面反射减弱",
+        "snow": "飘雪粒子、屋顶/雨棚/树冠/人行道积雪、冷色照明与更亮天空",
+        "typhoon": "密集斜雨、飞散碎屑、暗天高雾、随风变化的灯光与偶发闪电",
+        "transition": "粒子与灯光使用指数缓动平滑过渡；切换后仍可自由观察"
+      },
       "ui": {
         "hud": false,
         "labels": false,
         "controlsOverlay": false,
+        "weatherConsole": true,
+        "weatherDefault": "rain",
+        "weatherModes": [
+          "rain",
+          "clear",
+          "snow",
+          "typhoon"
+        ],
         "orbit": true,
         "zoom": true,
         "pan": true,

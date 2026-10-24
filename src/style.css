@@ -66,10 +66,107 @@ body[data-region=konbini] .console { background: linear-gradient(130deg, #0e2027
 body[data-region=konbini] .crest { color: #9bd5d1; border-color: #86bebb4a; }
 body[data-region=konbini] .live-dot { background: #7bd2cb; box-shadow: 0 0 9px #64bab5; }
 button:focus-visible { outline: 2px solid #d7adef; }
-/* The konbini is a collector's diorama: it is shown with no interface at all. */
+/* The konbini is a collector's diorama: the weather console is its only overlay. */
 body.clean-view {
   background: radial-gradient(ellipse at 50% 55%, #10252d 0%, #071118 52%, #04090e 100%);
 }
+.weather-console {
+  display: none;
+  position: absolute;
+  top: 26px;
+  right: 26px;
+  z-index: 6;
+  width: 206px;
+  padding: 12px;
+  color: #dbeae7;
+  border: 1px solid #7cb5b440;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0d2025ed, #071116e8);
+  box-shadow: 0 16px 42px #0006, inset 0 1px #ffffff0b;
+  backdrop-filter: blur(18px);
+}
+body.clean-view[data-region=konbini] .weather-console { display: block; }
+.weather-console-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 1px 2px 10px;
+  color: #c7deda;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.weather-console-head small {
+  margin-left: auto;
+  color: #607d7d;
+  font-size: 8px;
+  letter-spacing: 1.7px;
+}
+.weather-signal {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #72d8d1;
+  box-shadow: 0 0 9px #65cfc8;
+  transition: background .35s, box-shadow .35s;
+}
+.weather-console[data-active=clear] .weather-signal { background: #e5c889; box-shadow: 0 0 9px #d4ae66; }
+.weather-console[data-active=snow] .weather-signal { background: #d7eef8; box-shadow: 0 0 10px #b9dcec; }
+.weather-console[data-active=typhoon] .weather-signal { background: #ee958f; box-shadow: 0 0 10px #dd756d; }
+.weather-options { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.weather-options button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  padding: 7px 9px;
+  border: 1px solid #7fa6a228;
+  border-radius: 6px;
+  background: #d7f1ed06;
+  color: #bfd4d1;
+  text-align: left;
+  letter-spacing: 1px;
+}
+.weather-options button[aria-pressed=true]::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 7px currentColor;
+}
+.weather-options button b { font-size: 12px; font-weight: 500; letter-spacing: 2px; }
+.weather-options button small { color: #607e7d; font-size: 7px; letter-spacing: 1.5px; }
+.weather-options button:hover { border-color: #84c7c05c; background: #8bd8cf0e; }
+.weather-options button[aria-pressed=true] {
+  color: #f2fffb;
+  border-color: #70c7c25c;
+  background: linear-gradient(135deg, #2b69683d, #1b3e4240);
+  box-shadow: inset 0 0 20px #76d3c70a;
+}
+.weather-options button[aria-pressed=true] small { color: #9ad8d3; }
+.weather-options button[data-weather=clear][aria-pressed=true] {
+  border-color: #c9aa6b61;
+  background: linear-gradient(135deg, #6f5e382b, #332b1d42);
+  color: #fcf4dc;
+}
+.weather-options button[data-weather=clear][aria-pressed=true] small { color: #d9bf8e; }
+.weather-options button[data-weather=snow][aria-pressed=true] {
+  border-color: #a8cfdf6b;
+  background: linear-gradient(135deg, #3e637044, #1b303a66);
+  color: #f2fbff;
+}
+.weather-options button[data-weather=snow][aria-pressed=true] small { color: #b7d8e6; }
+.weather-options button[data-weather=typhoon][aria-pressed=true] {
+  border-color: #c879735c;
+  background: linear-gradient(135deg, #653b3944, #2d1d1e66);
+  color: #ffe9e4;
+}
+.weather-options button[data-weather=typhoon][aria-pressed=true] small { color: #dd9b90; }
 body.clean-view .identity,
 body.clean-view .console,
 body.clean-view .region-switch,
@@ -101,4 +198,11 @@ body.clean-view canvas { cursor: inherit; }
   .region-switch { top: 91px; left: 17px; right: auto; padding: 3px; }
   .region-switch button { padding: 8px 10px; font-size: 10px; }
   .region-switch button small { font-size: 8px; }
+  .weather-console { top: 14px; right: 12px; width: 172px; padding: 9px; border-radius: 8px; }
+  .weather-console-head { margin-bottom: 7px; font-size: 10px; letter-spacing: 1.4px; }
+  .weather-console-head small { font-size: 7px; letter-spacing: 1px; }
+  .weather-options { gap: 4px; }
+  .weather-options button { min-height: 38px; padding: 6px 7px; }
+  .weather-options button b { font-size: 11px; letter-spacing: 1px; }
+  .weather-options button small { font-size: 6px; letter-spacing: 1px; }
 }
